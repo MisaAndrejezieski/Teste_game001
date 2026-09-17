@@ -16,11 +16,11 @@ FPS = 60
 SPRITE_W, SPRITE_H = 48, 64
 FOLHA = pygame.image.load("personagem.png").convert_alpha()
 
-# Frames: idle, passo_esq, passo_dir, levitar_1, levitar_2, pousar
 def pegar_frame(indice):
     return FOLHA.subsurface((indice * SPRITE_W, 0, SPRITE_W, SPRITE_H))
 
-FRAMES = [pegar_frame(i) for i in range(6)]
+# Frames: idle, passo_esq, passo_dir, levitar_sub, levitar_apex, levitar_desc, pousar_imp, pousar_vol
+FRAMES = [pegar_frame(i) for i in range(8)]
 
 # --- Paleta: noite ---
 COR_CEU_TOPO = (8, 12, 28)
@@ -56,11 +56,12 @@ CHAO_Y = ALTURA - 80
 x = LARGURA // 2
 y = CHAO_Y
 vel_y = 0.0
-direcao = 1        # 1 = direita, -1 = esquerda (para espelhar sprite)
+direcao = 1
 no_ar = False
 tempo_levitando = 0.0
 tempo_animacao = 0.0
-tempo_andando = 0.0  # pra alternar frames de passo
+tempo_andando = 0.0
+nova_direcao = 0
 
 off_fundo = off_medio = off_perto = 0.0
 
@@ -195,28 +196,33 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    """Escolhe o frame correto e desenha."""
+    """Escolhe o frame correto baseado no estado."""
     global tempo_andando
 
-    # Decide frame baseado no estado
     if no_ar:
-        # levitando: alterna entre levitar_1 e levitar_2
-        frame_idx = 3 if int(tempo_animacao * 4) % 2 == 0 else 4
+        if vel_y < -50:
+            frame_idx = 3  # subindo
+        elif vel_y > 50:
+            frame_idx = 5  # descendo
+        else:
+            # apex: alterna levemente entre apex e lateral pra dar vida
+            if int(tempo_animacao * 3) % 2 == 0:
+                frame_idx = 4
+            else:
+                frame_idx = 4
     else:
-        # no chão: idle ou passo
-        if abs(vel_y) > 10 or direcao != 0 and tempo_andando > 0:
-            tempo_andando = 1  # marca que está no ciclo de passo
-        if tempo_andando == 1:
-            # alterna entre passo_esq e passo_dir
+        if nova_direcao != 0:
+            tempo_andando = 0.3
+            frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
+        elif tempo_andando > 0:
+            tempo_andando -= 0.016
             frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
         else:
             frame_idx = 0  # idle
 
     frame = FRAMES[frame_idx]
-    # Espelha se andando pra esquerda
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
-    # Desenha com os pés na posição (x, y)
     rect = frame.get_rect()
     rect.midbottom = (int(x), int(y))
     TELA.blit(frame, rect)

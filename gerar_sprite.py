@@ -2,8 +2,6 @@
 Gera sprite sheet da personagem com vestido esvoaçante.
 8 frames x 48x64 px = 384x64 px.
 """
-import math
-
 import pygame
 
 pygame.init()
@@ -23,7 +21,6 @@ VESTIDO_LUZ = (245, 85, 90, 255)
 VESTIDO_SOMBRA = (80, 12, 22, 255)
 DOURADO = (235, 195, 100, 255)
 DOURADO_ESCURO = (170, 130, 60, 255)
-MASCARA = (12, 10, 18, 255)
 OLHO = (255, 230, 140, 255)
 PE = (45, 35, 40, 255)
 
@@ -51,16 +48,10 @@ def desenhar_saia(frame, cx, cintura_y, pe_y, abertura, balanco_x, curvatura,
     pontos_borda = []
 
     for i, y in enumerate(range(cintura_y, pe_y - 2)):
-        t = i / max(1, altura_saia)  # 0 no topo, 1 no fundo
+        t = i / max(1, altura_saia)
 
-        # Abertura lateral cresce com t (mais larga no fundo)
         meia_largura = largura_base + abertura * t
-
-        # Curvatura: a saia desloca conforme a altura
-        # No fundo, o deslocamento é máximo
         desloc = balanco_x * t + curvatura * (t * t)
-
-        # Centro da linha
         cx_linha = cx + desloc
 
         # Camada de trás (silhueta escura, um pouco mais larga)
@@ -70,7 +61,7 @@ def desenhar_saia(frame, cx, cintura_y, pe_y, abertura, balanco_x, curvatura,
 
         pontos_borda.append((cx_linha, y, meia_largura))
 
-    # Camada da frente (vermelho vivo), ligeiramente menor
+    # Camada da frente (vermelho vivo)
     for (cx_linha, y, meia_largura) in pontos_borda:
         m = meia_largura * 0.85
         rect(int(cx_linha - m), y, int(cx_linha + m), y, VESTIDO, frame)
@@ -86,42 +77,31 @@ def desenhar_saia(frame, cx, cintura_y, pe_y, abertura, balanco_x, curvatura,
         m = meia_largura * 0.85
         px(int(cx_linha - m + 1), y, VESTIDO_LUZ, frame)
 
-    # Borda dourada no fundo da saia (últimas 2 linhas)
+    # Borda dourada no fundo da saia
     for (cx_linha, y, meia_largura) in pontos_borda[-3:]:
         m = meia_largura
         for xx in range(int(cx_linha - m), int(cx_linha + m) + 1):
             px(xx, y, DOURADO, frame)
-        # sombra da borda
         px(int(cx_linha - m), y, DOURADO_ESCURO, frame)
         px(int(cx_linha + m), y, DOURADO_ESCURO, frame)
 
 
 def desenhar_personagem(frame, pose):
-    """
-    Desenha a personagem completa em um frame.
-    Cada pose tem parâmetros diferentes pro vestido.
-    """
-    cx = SPRITE_W // 2  # 24
+    cx = SPRITE_W // 2
     cabeca_cy = 16
     ombro_y = 26
     cintura_y = 38
     pe_y = 62
 
-    # Parâmetros por pose:
-    # abertura  = quão larga a saia fica
-    # balanco_x = deslocamento lateral do vestido (esvoaçar)
-    # curvatura = quanto do fundo "vira" pra um lado
-    # balanco_corpo = deslocamento do corpo todo
-    # altura_pe = deslocamento vertical dos pés
     configs = {
-        "idle":       (abertura=8,  balanco_x=0,  curvatura=0,  balanco_corpo=0,  altura_pe=0),
-        "passo_esq":  (abertura=10, balanco_x=-2, curvatura=-1, balanco_corpo=-1, altura_pe=-1),
-        "passo_dir":  (abertura=10, balanco_x=2,  curvatura=1,  balanco_corpo=1,  altura_pe=-1),
-        "levitar_sub":(abertura=16, balanco_x=0,  curvatura=0,  balanco_corpo=0,  altura_pe=-3),
-        "levitar_apex":(abertura=22, balanco_x=0, curvatura=0,  balanco_corpo=0,  altura_pe=-4),
-        "levitar_desc":(abertura=14, balanco_x=0, curvatura=0,  balanco_corpo=0,  altura_pe=-3),
-        "pousar_imp": (abertura=20, balanco_x=0,  curvatura=0,  balanco_corpo=0,  altura_pe=1),
-        "pousar_vol": (abertura=11, balanco_x=0,  curvatura=0,  balanco_corpo=0,  altura_pe=0),
+        "idle":         {"abertura": 8,  "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": 0},
+        "passo_esq":    {"abertura": 10, "balanco_x": -2, "curvatura": -1, "balanco_corpo": -1, "altura_pe": -1},
+        "passo_dir":    {"abertura": 10, "balanco_x": 2,  "curvatura": 1,  "balanco_corpo": 1,  "altura_pe": -1},
+        "levitar_sub":  {"abertura": 16, "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": -3},
+        "levitar_apex": {"abertura": 22, "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": -4},
+        "levitar_desc": {"abertura": 14, "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": -3},
+        "pousar_imp":   {"abertura": 20, "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": 1},
+        "pousar_vol":   {"abertura": 11, "balanco_x": 0,  "curvatura": 0,  "balanco_corpo": 0,  "altura_pe": 0},
     }
     cfg = configs[pose]
     abertura = cfg["abertura"]
@@ -134,14 +114,13 @@ def desenhar_personagem(frame, pose):
     rect(cx - 4 + bal, pe_y + alt_pe - 2, cx - 2 + bal, pe_y + alt_pe, PE, frame)
     rect(cx + 1 + bal, pe_y + alt_pe - 2, cx + 3 + bal, pe_y + alt_pe, PE, frame)
 
-    # --- Saia (com curvatura e abertura variável) ---
+    # --- Saia ---
     desenhar_saia(frame, cx + bal, cintura_y, pe_y + alt_pe,
                   abertura, balanco_x, curvatura, largura_base=6)
 
     # --- Tronco ---
     for y in range(ombro_y, cintura_y):
         rect(cx - 5 + bal, y, cx + 5 + bal, y, VESTIDO, frame)
-    # luz e sombra do tronco
     for y in range(ombro_y + 1, cintura_y):
         px(cx - 4 + bal, y, VESTIDO_LUZ, frame)
         px(cx + 4 + bal, y, VESTIDO_SOMBRA, frame)
@@ -165,14 +144,11 @@ def desenhar_personagem(frame, pose):
     rect(cx - 5 + bal, cabeca_cy - 7, cx + 5 + bal, cabeca_cy - 4, CABELO, frame)
     rect(cx - 6 + bal, cabeca_cy - 5, cx - 6 + bal, cabeca_cy + 2, CABELO, frame)
     rect(cx + 6 + bal, cabeca_cy - 5, cx + 6 + bal, cabeca_cy + 2, CABELO, frame)
-    # franja
     rect(cx - 4 + bal, cabeca_cy - 6, cx + 2 + bal, cabeca_cy - 5, CABELO, frame)
-    # luz no cabelo
     px(cx - 2 + bal, cabeca_cy - 6, CABELO_LUZ, frame)
     px(cx - 1 + bal, cabeca_cy - 6, CABELO_LUZ, frame)
 
-    # --- Cabelo comprido (varia com a pose) ---
-    # em levitação, cabelo sobe mais
+    # --- Cabelo comprido ---
     if pose.startswith("levitar"):
         cabelo_extra = 6
     elif pose.startswith("pousar"):
@@ -193,12 +169,10 @@ def desenhar_personagem(frame, pose):
         px(cx - 7 + bal, y, VESTIDO_ESCURO, frame)
         px(cx + 6 + bal, y, VESTIDO, frame)
         px(cx + 7 + bal, y, VESTIDO, frame)
-    # mão direita
     px(cx + 7 + bal, cintura_y - 2, DOURADO, frame)
     px(cx + 8 + bal, cintura_y - 2, DOURADO, frame)
 
 
-# --- Gera os 8 frames ---
 poses = [
     "idle", "passo_esq", "passo_dir",
     "levitar_sub", "levitar_apex", "levitar_desc",
