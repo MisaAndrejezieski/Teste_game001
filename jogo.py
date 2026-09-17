@@ -12,11 +12,21 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Paleta: Noite profunda no deserto ---
-COR_CEU_TOPO = (8, 12, 28)         # quase preto azulado
-COR_CEU_ALTO = (18, 28, 55)        # azul profundo
-COR_CEU_MEDIO = (40, 55, 90)       # azul noite
-COR_CEU_BASE = (90, 90, 110)       # cinza-azulado no horizonte
+# --- Carrega o sprite sheet ---
+SPRITE_W, SPRITE_H = 48, 64
+FOLHA = pygame.image.load("personagem.png").convert_alpha()
+
+# Frames: idle, passo_esq, passo_dir, levitar_1, levitar_2, pousar
+def pegar_frame(indice):
+    return FOLHA.subsurface((indice * SPRITE_W, 0, SPRITE_W, SPRITE_H))
+
+FRAMES = [pegar_frame(i) for i in range(6)]
+
+# --- Paleta: noite ---
+COR_CEU_TOPO = (8, 12, 28)
+COR_CEU_ALTO = (18, 28, 55)
+COR_CEU_MEDIO = (40, 55, 90)
+COR_CEU_BASE = (90, 90, 110)
 
 COR_LUA = (245, 240, 220)
 COR_LUA_HALO = (180, 190, 210)
@@ -29,15 +39,6 @@ COR_DUNA_MEDIO = (75, 75, 90)
 COR_DUNA_PERTO = (100, 95, 100)
 COR_CHAO = (70, 65, 75)
 COR_CHAO_BRILHO = (130, 125, 140)
-
-COR_VESTIDO_CLARO = (180, 40, 55)
-COR_VESTIDO_ESCURO = (105, 15, 30)
-COR_VESTIDO_INTERNO = (60, 8, 18)
-COR_DOURADO = (200, 165, 90)
-COR_PELE = (215, 190, 175)
-COR_CABELO = (20, 18, 28)
-COR_MASCARA = (8, 8, 14)
-COR_OLHO = (255, 220, 150)
 
 # --- Física ---
 GRAVIDADE = 320.0
@@ -55,15 +56,14 @@ CHAO_Y = ALTURA - 80
 x = LARGURA // 2
 y = CHAO_Y
 vel_y = 0.0
-direcao = 0
+direcao = 1        # 1 = direita, -1 = esquerda (para espelhar sprite)
 no_ar = False
 tempo_levitando = 0.0
 tempo_animacao = 0.0
+tempo_andando = 0.0  # pra alternar frames de passo
 
 off_fundo = off_medio = off_perto = 0.0
-capa_offset_x = 0.0
 
-# Estrelas
 estrelas = []
 for _ in range(90):
     estrelas.append({
@@ -76,7 +76,6 @@ for _ in range(90):
 
 
 def desenhar_ceu():
-    """Gradiente de 4 paradas: noite profunda -> horizonte."""
     for i in range(ALTURA):
         t = i / ALTURA
         if t < 0.4:
@@ -97,20 +96,14 @@ def desenhar_ceu():
         pygame.draw.line(TELA, (r, g, b), (0, i), (LARGURA, i))
 
 
-def desenhar_lua(tempo):
-    """Lua com halo suave."""
+def desenhar_lua():
     lua_x = LARGURA - 180
     lua_y = 110
-
-    # halo em várias camadas (transparente -> opaco)
     for raio, alpha in [(90, 12), (70, 20), (50, 35), (36, 55)]:
         halo = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
         pygame.draw.circle(halo, (*COR_LUA_HALO, alpha), (raio, raio), raio)
         TELA.blit(halo, (lua_x - raio, lua_y - raio))
-
-    # corpo da lua
     pygame.draw.circle(TELA, COR_LUA, (lua_x, lua_y), 22)
-    # manchas sutis
     pygame.draw.circle(TELA, (225, 220, 200), (lua_x - 6, lua_y - 4), 4)
     pygame.draw.circle(TELA, (225, 220, 200), (lua_x + 7, lua_y + 5), 3)
     pygame.draw.circle(TELA, (225, 220, 200), (lua_x + 2, lua_y - 9), 2)
@@ -118,12 +111,9 @@ def desenhar_lua(tempo):
 
 def desenhar_estrelas(tempo):
     for e in estrelas:
-        # cintilação
         brilho = 0.6 + 0.4 * math.sin(tempo * e["vel_cint"] + e["fase"])
-        alpha = int(255 * brilho)
         px = (e["x"] - off_fundo * 0.1) % LARGURA
         py = e["y"]
-        # desenha com alpha
         cor = (
             min(255, int(COR_ESTRELA[0] * brilho)),
             min(255, int(COR_ESTRELA[1] * brilho)),
@@ -147,7 +137,6 @@ def desenhar_camada_senoidal(offset, cor, altura_base, amplitude, comprimento):
 
 
 def desenhar_piramides(offset):
-    """Pirâmides em degraus, silhueta azul-escura no fundo."""
     base_y = ALTURA - 250
     piramides = [
         (120, 130, 70, 5),
@@ -169,11 +158,9 @@ def desenhar_piramides(offset):
 
 
 def desenhar_nevoa(y, altura, alpha_max):
-    """Faixa de névoa horizontal, sutil."""
     nevoa = pygame.Surface((LARGURA, altura), pygame.SRCALPHA)
     for i in range(altura):
         t = i / altura
-        # fade in e fade out
         if t < 0.5:
             a = int(alpha_max * (t / 0.5))
         else:
@@ -183,10 +170,7 @@ def desenhar_nevoa(y, altura, alpha_max):
 
 
 def desenhar_chao_lunar():
-    """Chão de areia noturna, com brilho prateado na parte de cima."""
-    # base
     pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y + 10, LARGURA, ALTURA - CHAO_Y))
-    # brilho prateado (primeiras linhas)
     for i in range(30):
         t = 1 - (i / 30)
         r = int(COR_CHAO[0] * (1 - t) + COR_CHAO_BRILHO[0] * t)
@@ -201,8 +185,8 @@ def desenhar_sombra(cx, cy, no_ar):
         escala = max(0.3, 1.0 - altura_voo / 200.0)
     else:
         escala = 1.0
-    largura = int(40 * escala)
-    altura = int(8 * escala)
+    largura = int(36 * escala)
+    altura = int(7 * escala)
     if largura <= 0 or altura <= 0:
         return
     sombra = pygame.Surface((largura, altura), pygame.SRCALPHA)
@@ -210,122 +194,35 @@ def desenhar_sombra(cx, cy, no_ar):
     TELA.blit(sombra, (cx - largura // 2, CHAO_Y + 6))
 
 
-def desenhar_personagem(cx, cy, no_ar, tempo_anim, direcao, vel_y, capa_off_x):
-    balanco = math.sin(tempo_anim * 5) * 1.5 if no_ar else math.sin(tempo_anim * 7) * 1.0
-    abertura = 1.0 if no_ar else 0.65
+def desenhar_personagem():
+    """Escolhe o frame correto e desenha."""
+    global tempo_andando
 
-    cabeca_cy = cy - 76
-    pescoco_y = cy - 64
-    ombro_y = cy - 58
-    cintura_y = cy - 34
+    # Decide frame baseado no estado
+    if no_ar:
+        # levitando: alterna entre levitar_1 e levitar_2
+        frame_idx = 3 if int(tempo_animacao * 4) % 2 == 0 else 4
+    else:
+        # no chão: idle ou passo
+        if abs(vel_y) > 10 or direcao != 0 and tempo_andando > 0:
+            tempo_andando = 1  # marca que está no ciclo de passo
+        if tempo_andando == 1:
+            # alterna entre passo_esq e passo_dir
+            frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
+        else:
+            frame_idx = 0  # idle
 
-    pe_bal = math.sin(tempo_anim * 8) * 2 if (not no_ar and direcao != 0) else 0
-
-    # Pés
-    pygame.draw.line(TELA, (35, 25, 30),
-                     (cx - 4 + balanco, cintura_y + 8),
-                     (cx - 5 + balanco + pe_bal, cy), 3)
-    pygame.draw.line(TELA, (35, 25, 30),
-                     (cx + 4 + balanco, cintura_y + 8),
-                     (cx + 5 + balanco - pe_bal, cy), 3)
-
-    # Capa traseira
-    atraso = capa_off_x
-    abre_tras = abertura * 26
-    bal_tras = math.sin(tempo_anim * 3.5) * 2.5
-    tras_pontos = [
-        (cx - 8 + balanco + atraso * 0.3, ombro_y),
-        (cx + 8 + balanco + atraso * 0.3, ombro_y),
-        (cx + 11 + balanco + atraso * 0.6, cintura_y),
-        (cx + abre_tras + atraso + bal_tras, cy - 2),
-        (cx - abre_tras + atraso + bal_tras, cy - 2),
-        (cx - 11 + balanco + atraso * 0.6, cintura_y),
-    ]
-    pygame.draw.polygon(TELA, COR_VESTIDO_ESCURO, tras_pontos)
-
-    # Tronco interno
-    pygame.draw.polygon(TELA, COR_VESTIDO_INTERNO, [
-        (cx - 6 + balanco, ombro_y + 2),
-        (cx + 6 + balanco, ombro_y + 2),
-        (cx + 5 + balanco, cintura_y),
-        (cx - 5 + balanco, cintura_y),
-    ])
-
-    # Pescoço
-    pygame.draw.rect(TELA, COR_PELE,
-                     (cx - 4 + balanco, pescoco_y, 8, ombro_y - pescoco_y + 2))
-
-    # Braços
-    pygame.draw.line(TELA, COR_VESTIDO_ESCURO,
-                     (cx - 8 + balanco, ombro_y + 2),
-                     (cx - 15 + balanco + atraso * 0.5, cintura_y + 4), 3)
-    pygame.draw.line(TELA, COR_VESTIDO_CLARO,
-                     (cx + 8 + balanco, ombro_y + 2),
-                     (cx + 16 + balanco + atraso * 0.5, cintura_y + 6), 3)
-    pygame.draw.circle(TELA, COR_DOURADO,
-                       (int(cx + 16 + balanco + atraso * 0.5), int(cintura_y + 6)), 2)
-
-    # Capa frontal
-    abre_frente = abertura * 20
-    bal_frente = math.sin(tempo_anim * 3.5 + 0.5) * 1.5
-    frente_pontos = [
-        (cx - 8 + balanco, ombro_y),
-        (cx + 8 + balanco, ombro_y),
-        (cx + 10 + balanco, cintura_y),
-        (cx + abre_frente + bal_frente + atraso * 0.4, cy - 4),
-        (cx - abre_frente + bal_frente + atraso * 0.4, cy - 4),
-        (cx - 10 + balanco, cintura_y),
-    ]
-    pygame.draw.polygon(TELA, COR_VESTIDO_CLARO, frente_pontos)
-
-    # Borda dourada
-    base_esq = (cx - abre_frente + bal_frente + atraso * 0.4, cy - 4)
-    base_dir = (cx + abre_frente + bal_frente + atraso * 0.4, cy - 4)
-    pygame.draw.line(TELA, COR_DOURADO, base_esq, base_dir, 2)
-    for i in range(1, 5):
-        t = i / 5
-        px = base_esq[0] + (base_dir[0] - base_esq[0]) * t
-        py = base_esq[1] + (base_dir[1] - base_esq[1]) * t
-        pygame.draw.circle(TELA, COR_DOURADO, (int(px), int(py - 3)), 1)
-
-    # Cinto
-    pygame.draw.line(TELA, COR_DOURADO,
-                     (cx - 8 + balanco, cintura_y - 1),
-                     (cx + 8 + balanco, cintura_y - 1), 2)
-
-    # Cabeça
-    cabeca_x = cx + balanco
-    pygame.draw.polygon(TELA, COR_VESTIDO_ESCURO, [
-        (cabeca_x - 10, cabeca_cy + 8),
-        (cabeca_x - 9, cabeca_cy - 6),
-        (cabeca_x - 4, cabeca_cy - 11),
-        (cabeca_x + 4, cabeca_cy - 11),
-        (cabeca_x + 9, cabeca_cy - 6),
-        (cabeca_x + 10, cabeca_cy + 8),
-    ])
-    pygame.draw.polygon(TELA, COR_MASCARA, [
-        (cabeca_x - 7, cabeca_cy + 6),
-        (cabeca_x - 6, cabeca_cy - 4),
-        (cabeca_x + 6, cabeca_cy - 4),
-        (cabeca_x + 7, cabeca_cy + 6),
-    ])
-    olho_x = cabeca_x + direcao * 2
-    olho_y = cabeca_cy - 1
-    pygame.draw.circle(TELA, COR_OLHO, (int(olho_x), int(olho_y)), 2)
-
-    # Cabelo/cauda
-    cauda_onda = math.sin(tempo_anim * 4) * 4
-    cauda_x = cabeca_x - direcao * 8 + cauda_onda
-    cauda_y = cabeca_cy + 2
-    pygame.draw.line(TELA, COR_CABELO,
-                     (cabeca_x - direcao * 5, cabeca_cy - 2),
-                     (cauda_x, cauda_y), 4)
-    pygame.draw.line(TELA, COR_CABELO,
-                     (cauda_x, cauda_y),
-                     (cauda_x - direcao * 6 + cauda_onda, cauda_y + 8), 3)
+    frame = FRAMES[frame_idx]
+    # Espelha se andando pra esquerda
+    if direcao == -1:
+        frame = pygame.transform.flip(frame, True, False)
+    # Desenha com os pés na posição (x, y)
+    rect = frame.get_rect()
+    rect.midbottom = (int(x), int(y))
+    TELA.blit(frame, rect)
 
 
-# --- Loop Principal ---
+# --- Loop ---
 while True:
     dt = RELOGIO.tick(FPS) / 1000.0
     tempo_animacao += dt
@@ -375,46 +272,24 @@ while True:
     x += nova_direcao * VELOCIDADE_X * dt
     x = max(40, min(LARGURA - 40, x))
 
-    # Movimento secundário
-    alvo_capa_x = -direcao * 6
-    capa_offset_x += (alvo_capa_x - capa_offset_x) * min(1.0, dt * 4.0)
-
     # Parallax
     off_fundo += nova_direcao * 15 * dt
     off_medio += nova_direcao * 50 * dt
     off_perto += nova_direcao * 110 * dt
 
-    # --- Desenho (ordem importa) ---
+    # --- Desenho ---
     desenhar_ceu()
     desenhar_estrelas(tempo_animacao)
-    desenhar_lua(tempo_animacao)
-
-    # pirâmides distantes (mais escuras)
+    desenhar_lua()
     desenhar_piramides(off_fundo)
-
-    # montanhas médias
     desenhar_camada_senoidal(off_fundo, COR_MONTANHA, ALTURA - 240, 35, 240)
-
-    # névoa fina entre montanhas e dunas
     desenhar_nevoa(ALTURA - 210, 40, 35)
-
-    # dunas de fundo
     desenhar_camada_senoidal(off_medio, COR_DUNA_FUNDO, ALTURA - 180, 22, 150)
-
-    # névoa entre dunas
     desenhar_nevoa(ALTURA - 140, 35, 30)
-
-    # dunas médias
     desenhar_camada_senoidal(off_medio * 1.2, COR_DUNA_MEDIO, ALTURA - 120, 16, 100)
-
-    # dunas próximas
     desenhar_camada_senoidal(off_perto, COR_DUNA_PERTO, ALTURA - 80, 10, 70)
-
-    # chão
     desenhar_chao_lunar()
-
-    # sombra + personagem
     desenhar_sombra(x, y, no_ar)
-    desenhar_personagem(x, y, no_ar, tempo_animacao, direcao, vel_y, capa_offset_x)
+    desenhar_personagem()
 
     pygame.display.flip()
