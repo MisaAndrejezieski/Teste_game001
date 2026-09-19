@@ -24,7 +24,6 @@ def pegar_frame(i):
         (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
     )
 
-# 0=idle_1, 1=idle_2, 2=passo_1, 3=passo_2, 4=levitar_1, 5=levitar_2, 6=levantar, 7=cair
 FRAMES = [pegar_frame(i) for i in range(8)]
 
 # --- Paleta do cenário ---
@@ -198,31 +197,26 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    """Escolhe o frame baseado no estado e desenha."""
     global tempo_animacao
 
     if no_ar:
-        # Levitando: escolhe frame baseado na velocidade vertical
         if vel_y < -80:
-            frame_idx = 6  # levantando
+            frame_idx = 6
         elif vel_y > 80:
-            frame_idx = 7  # caindo
+            frame_idx = 7
         else:
-            # flutuando: alterna entre levitar_1 e levitar_2
             frame_idx = 4 if int(tempo_animacao * 4) % 2 == 0 else 5
     else:
         if nova_direcao != 0:
-            # andando: alterna passo_1 e passo_2
             frame_idx = 2 if int(tempo_animacao * 8) % 2 == 0 else 3
         else:
-            # parada: alterna idle_1 e idle_2 (respiração)
             frame_idx = 0 if int(tempo_animacao * 2) % 2 == 0 else 1
 
     frame = FRAMES[frame_idx]
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
 
-    compensacao = int(4 * SPRITE_ESCALA)  # pixels vazios abaixo do pé
+    compensacao = int(4 * SPRITE_ESCALA)
     rect = frame.get_rect()
     rect.midbottom = (int(x), int(y) + compensacao)
     TELA.blit(frame, rect)
@@ -253,7 +247,8 @@ while True:
 
     # Física vertical
     if nova_direcao != 0:
-        no_ar = True        tempo_levitando += dt
+        no_ar = True
+        tempo_levitando += dt
         altura_alvo = CHAO_Y - ALTURA_LEVITACAO + math.sin(tempo_levitando * FREQ_OSCILACAO) * AMPLITUDE_OSCILACAO
         if y > altura_alvo:
             y -= VELOCIDADE_SUBIDA * dt
@@ -273,11 +268,9 @@ while True:
             vel_y = 0
             no_ar = False
 
-    # Movimento horizontal
     x += nova_direcao * VELOCIDADE_X * dt
     x = max(40, min(LARGURA - 40, x))
 
-    # Parallax
     off_fundo += nova_direcao * 15 * dt
     off_medio += nova_direcao * 50 * dt
     off_perto += nova_direcao * 110 * dt
