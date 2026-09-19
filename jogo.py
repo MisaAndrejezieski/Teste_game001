@@ -12,25 +12,29 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carrega a personagem ---
-SPRITE = pygame.image.load("personagem.png").convert_alpha()
-SPRITE_ESCALA = 1.5
-SPRITE = pygame.transform.scale(
-    SPRITE,
-    (int(SPRITE.get_width() * SPRITE_ESCALA),
-     int(SPRITE.get_height() * SPRITE_ESCALA))
-)
+# --- Carrega sprite sheet ---
+SPRITE_W, SPRITE_H = 96, 128
+FOLHA = pygame.image.load("personagem.png").convert_alpha()
+SPRITE_ESCALA = 2.5
 
-# --- Paleta: noite ---
+def pegar_frame(i):
+    frame = FOLHA.subsurface((i * SPRITE_W, 0, SPRITE_W, SPRITE_H))
+    return pygame.transform.scale(
+        frame,
+        (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
+    )
+
+# 0=idle_1, 1=idle_2, 2=passo_1, 3=passo_2, 4=levitar_1, 5=levitar_2, 6=levantar, 7=cair
+FRAMES = [pegar_frame(i) for i in range(8)]
+
+# --- Paleta do cenário ---
 COR_CEU_TOPO = (8, 12, 28)
 COR_CEU_ALTO = (18, 28, 55)
 COR_CEU_MEDIO = (40, 55, 90)
 COR_CEU_BASE = (90, 90, 110)
-
 COR_LUA = (245, 240, 220)
 COR_LUA_HALO = (180, 190, 210)
 COR_ESTRELA = (230, 235, 255)
-
 COR_PIRAMIDE = (25, 32, 52)
 COR_MONTANHA = (35, 45, 70)
 COR_DUNA_FUNDO = (55, 60, 80)
@@ -184,21 +188,43 @@ def desenhar_sombra(cx, cy, no_ar):
         escala = max(0.3, 1.0 - altura_voo / 200.0)
     else:
         escala = 1.0
-    largura = int(36 * escala)
-    altura = int(7 * escala)
+    largura = int(60 * escala)
+    altura = int(10 * escala)
     if largura <= 0 or altura <= 0:
         return
     sombra = pygame.Surface((largura, altura), pygame.SRCALPHA)
-    pygame.draw.ellipse(sombra, (0, 0, 0, 120), (0, 0, largura, altura))
-    TELA.blit(sombra, (cx - largura // 2, CHAO_Y + 6))
+    pygame.draw.ellipse(sombra, (0, 0, 0, 130), (0, 0, largura, altura))
+    TELA.blit(sombra, (cx - largura // 2, CHAO_Y - 2))
 
 
 def desenhar_personagem():
-    frame = SPRITE
+    """Escolhe o frame baseado no estado e desenha."""
+    global tempo_animacao
+
+    if no_ar:
+        # Levitando: escolhe frame baseado na velocidade vertical
+        if vel_y < -80:
+            frame_idx = 6  # levantando
+        elif vel_y > 80:
+            frame_idx = 7  # caindo
+        else:
+            # flutuando: alterna entre levitar_1 e levitar_2
+            frame_idx = 4 if int(tempo_animacao * 4) % 2 == 0 else 5
+    else:
+        if nova_direcao != 0:
+            # andando: alterna passo_1 e passo_2
+            frame_idx = 2 if int(tempo_animacao * 8) % 2 == 0 else 3
+        else:
+            # parada: alterna idle_1 e idle_2 (respiração)
+            frame_idx = 0 if int(tempo_animacao * 2) % 2 == 0 else 1
+
+    frame = FRAMES[frame_idx]
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
+
+    compensacao = int(4 * SPRITE_ESCALA)  # pixels vazios abaixo do pé
     rect = frame.get_rect()
-    rect.midbottom = (int(x), int(y))
+    rect.midbottom = (int(x), int(y) + compensacao)
     TELA.blit(frame, rect)
 
 
@@ -228,48 +254,3 @@ while True:
     # Física vertical
     if nova_direcao != 0:
         no_ar = True
-        tempo_levitando += dt
-        altura_alvo = CHAO_Y - ALTURA_LEVITACAO + math.sin(tempo_levitando * FREQ_OSCILACAO) * AMPLITUDE_OSCILACAO
-        if y > altura_alvo:
-            y -= VELOCIDADE_SUBIDA * dt
-            if y < altura_alvo:
-                y = altura_alvo
-        else:
-            y = altura_alvo
-        vel_y = 0.0
-    else:
-        tempo_levitando = 0.0
-        vel_y += GRAVIDADE * dt
-        if vel_y > VELOCIDADE_DESCIDA:
-            vel_y = VELOCIDADE_DESCIDA
-        y += vel_y * dt
-        if y >= CHAO_Y:
-            y = CHAO_Y
-            vel_y = 0
-            no_ar = False
-
-    # Movimento horizontal
-    x += nova_direcao * VELOCIDADE_X * dt
-    x = max(40, min(LARGURA - 40, x))
-
-    # Parallax
-    off_fundo += nova_direcao * 15 * dt
-    off_medio += nova_direcao * 50 * dt
-    off_perto += nova_direcao * 110 * dt
-
-    # --- Desenho ---
-    desenhar_ceu()
-    desenhar_estrelas(tempo_animacao)
-    desenhar_lua()
-    desenhar_piramides(off_fundo)
-    desenhar_camada_senoidal(off_fundo, COR_MONTANHA, ALTURA - 240, 35, 240)
-    desenhar_nevoa(ALTURA - 210, 40, 35)
-    desenhar_camada_senoidal(off_medio, COR_DUNA_FUNDO, ALTURA - 180, 22, 150)
-    desenhar_nevoa(ALTURA - 140, 35, 30)
-    desenhar_camada_senoidal(off_medio * 1.2, COR_DUNA_MEDIO, ALTURA - 120, 16, 100)
-    desenhar_camada_senoidal(off_perto, COR_DUNA_PERTO, ALTURA - 80, 10, 70)
-    desenhar_chao_lunar()
-    desenhar_sombra(x, y, no_ar)
-    desenhar_personagem()
-
-    pygame.display.flip()
