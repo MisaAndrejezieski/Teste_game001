@@ -1,0 +1,9 @@
+{
+    "python.defaultInterpreterPath": "e:\\Teste_game001\\.venv\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "e:\\Teste_game001\\.venv\\Lib\\site-packages"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    }
+}
