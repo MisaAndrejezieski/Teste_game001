@@ -12,9 +12,9 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carrega a personagem (imagem única de 96x128) ---
+# --- Carrega a personagem ---
 SPRITE = pygame.image.load("personagem.png").convert_alpha()
-SPRITE_ESCALA = 1.5  # aumenta a personagem pra ficar visível
+SPRITE_ESCALA = 1.5
 SPRITE = pygame.transform.scale(
     SPRITE,
     (int(SPRITE.get_width() * SPRITE_ESCALA),
@@ -111,25 +111,25 @@ def desenhar_lua():
 def desenhar_estrelas(tempo):
     for e in estrelas:
         brilho = 0.6 + 0.4 * math.sin(tempo * e["vel_cint"] + e["fase"])
-        px = (e["x"] - off_fundo * 0.1) % LARGURA
-        py = e["y"]
+        px_ = (e["x"] - off_fundo * 0.1) % LARGURA
+        py_ = e["y"]
         cor = (
             min(255, int(COR_ESTRELA[0] * brilho)),
             min(255, int(COR_ESTRELA[1] * brilho)),
             min(255, int(COR_ESTRELA[2] * brilho)),
         )
         if e["tam"] == 1:
-            TELA.set_at((int(px), int(py)), cor)
+            TELA.set_at((int(px_), int(py_)), cor)
         else:
-            pygame.draw.circle(TELA, cor, (int(px), int(py)), e["tam"])
+            pygame.draw.circle(TELA, cor, (int(px_), int(py_)), e["tam"])
 
 
 def desenhar_camada_senoidal(offset, cor, altura_base, amplitude, comprimento):
     pontos = []
-    for px in range(0, LARGURA + 10, 6):
-        ang = (px + offset) / comprimento
-        py = altura_base + math.sin(ang) * amplitude + math.sin(ang * 2.7) * amplitude * 0.4
-        pontos.append((px, py))
+    for px_ in range(0, LARGURA + 10, 6):
+        ang = (px_ + offset) / comprimento
+        py_ = altura_base + math.sin(ang) * amplitude + math.sin(ang * 2.7) * amplitude * 0.4
+        pontos.append((px_, py_))
     pontos.append((LARGURA, ALTURA))
     pontos.append((0, ALTURA))
     pygame.draw.polygon(TELA, cor, pontos)
@@ -194,7 +194,6 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    """Desenha o sprite único, espelhando se estiver indo pra esquerda."""
     frame = SPRITE
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
