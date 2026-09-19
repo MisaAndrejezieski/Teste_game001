@@ -12,18 +12,20 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carrega a personagem (imagem única, sem sprite sheet) ---
-SPRITE_ORIGINAL = pygame.image.load("personagem.png").convert_alpha()
+# --- Carrega sprite sheet (4 frames de 64x64) ---
+SPRITE_W, SPRITE_H = 64, 64
+FOLHA = pygame.image.load("personagem.png").convert_alpha()
+SPRITE_ESCALA = 3.0  # personagem pequena, escala grande pra ficar visível
 
-# Escala pra caber na tela. Ajusta esse número:
-# 0.3 = pequena, 0.5 = média, 0.8 = grande
-SPRITE_ESCALA = 0.4
+def pegar_frame(i):
+    frame = FOLHA.subsurface((i * SPRITE_W, 0, SPRITE_W, SPRITE_H))
+    return pygame.transform.scale(
+        frame,
+        (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
+    )
 
-SPRITE = pygame.transform.scale(
-    SPRITE_ORIGINAL,
-    (int(SPRITE_ORIGINAL.get_width() * SPRITE_ESCALA),
-     int(SPRITE_ORIGINAL.get_height() * SPRITE_ESCALA))
-)
+# 0=idle, 1=passo_1, 2=passo_2, 3=levitar
+FRAMES = [pegar_frame(i) for i in range(4)]
 
 # --- Paleta do cenário ---
 COR_CEU_TOPO = (8, 12, 28)
@@ -186,8 +188,8 @@ def desenhar_sombra(cx, cy, no_ar):
         escala = max(0.3, 1.0 - altura_voo / 200.0)
     else:
         escala = 1.0
-    largura = int(60 * escala)
-    altura = int(10 * escala)
+    largura = int(40 * escala)
+    altura = int(8 * escala)
     if largura <= 0 or altura <= 0:
         return
     sombra = pygame.Surface((largura, altura), pygame.SRCALPHA)
@@ -196,22 +198,23 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    """Desenha a personagem. Respira quando parada, balança quando anda."""
-    frame = SPRITE
+    global tempo_animacao
+
+    if no_ar:
+        frame_idx = 3  # levitar
+    else:
+        if nova_direcao != 0:
+            # alterna passo_1 e passo_2
+            frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
+        else:
+            frame_idx = 0  # idle
+
+    frame = FRAMES[frame_idx]
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
 
-    # respiração quando parada
-    if not no_ar and nova_direcao == 0:
-        respiracao = math.sin(tempo_animacao * 2.5) * 2
-    # balanço quando anda
-    elif not no_ar and nova_direcao != 0:
-        respiracao = math.sin(tempo_animacao * 8) * 1.5
-    else:
-        respiracao = 0
-
     rect = frame.get_rect()
-    rect.midbottom = (int(x), int(y) + int(respiracao))
+    rect.midbottom = (int(x), int(y))
     TELA.blit(frame, rect)
 
 
