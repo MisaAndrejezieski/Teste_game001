@@ -12,15 +12,14 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carrega o sprite sheet ---
-SPRITE_W, SPRITE_H = 48, 64
-FOLHA = pygame.image.load("personagem.png").convert_alpha()
-
-def pegar_frame(indice):
-    return FOLHA.subsurface((indice * SPRITE_W, 0, SPRITE_W, SPRITE_H))
-
-# Frames: idle, passo_esq, passo_dir, levitar_sub, levitar_apex, levitar_desc, pousar_imp, pousar_vol
-FRAMES = [pegar_frame(i) for i in range(8)]
+# --- Carrega a personagem (imagem única de 96x128) ---
+SPRITE = pygame.image.load("personagem.png").convert_alpha()
+SPRITE_ESCALA = 1.5  # aumenta a personagem pra ficar visível
+SPRITE = pygame.transform.scale(
+    SPRITE,
+    (int(SPRITE.get_width() * SPRITE_ESCALA),
+     int(SPRITE.get_height() * SPRITE_ESCALA))
+)
 
 # --- Paleta: noite ---
 COR_CEU_TOPO = (8, 12, 28)
@@ -60,7 +59,6 @@ direcao = 1
 no_ar = False
 tempo_levitando = 0.0
 tempo_animacao = 0.0
-tempo_andando = 0.0
 nova_direcao = 0
 
 off_fundo = off_medio = off_perto = 0.0
@@ -196,31 +194,8 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    """Escolhe o frame correto baseado no estado."""
-    global tempo_andando
-
-    if no_ar:
-        if vel_y < -50:
-            frame_idx = 3  # subindo
-        elif vel_y > 50:
-            frame_idx = 5  # descendo
-        else:
-            # apex: alterna levemente entre apex e lateral pra dar vida
-            if int(tempo_animacao * 3) % 2 == 0:
-                frame_idx = 4
-            else:
-                frame_idx = 4
-    else:
-        if nova_direcao != 0:
-            tempo_andando = 0.3
-            frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
-        elif tempo_andando > 0:
-            tempo_andando -= 0.016
-            frame_idx = 1 if int(tempo_animacao * 8) % 2 == 0 else 2
-        else:
-            frame_idx = 0  # idle
-
-    frame = FRAMES[frame_idx]
+    """Desenha o sprite único, espelhando se estiver indo pra esquerda."""
+    frame = SPRITE
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
     rect = frame.get_rect()
