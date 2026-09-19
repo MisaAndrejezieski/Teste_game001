@@ -12,19 +12,18 @@ pygame.display.set_caption("Teste_game001 - A Jornada")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carrega sprite sheet ---
-SPRITE_W, SPRITE_H = 96, 128
-FOLHA = pygame.image.load("personagem.png").convert_alpha()
-SPRITE_ESCALA = 2.5
+# --- Carrega a personagem (imagem única, sem sprite sheet) ---
+SPRITE_ORIGINAL = pygame.image.load("personagem.png").convert_alpha()
 
-def pegar_frame(i):
-    frame = FOLHA.subsurface((i * SPRITE_W, 0, SPRITE_W, SPRITE_H))
-    return pygame.transform.scale(
-        frame,
-        (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
-    )
+# Escala pra caber na tela. Ajusta esse número:
+# 0.3 = pequena, 0.5 = média, 0.8 = grande
+SPRITE_ESCALA = 0.4
 
-FRAMES = [pegar_frame(i) for i in range(8)]
+SPRITE = pygame.transform.scale(
+    SPRITE_ORIGINAL,
+    (int(SPRITE_ORIGINAL.get_width() * SPRITE_ESCALA),
+     int(SPRITE_ORIGINAL.get_height() * SPRITE_ESCALA))
+)
 
 # --- Paleta do cenário ---
 COR_CEU_TOPO = (8, 12, 28)
@@ -197,28 +196,22 @@ def desenhar_sombra(cx, cy, no_ar):
 
 
 def desenhar_personagem():
-    global tempo_animacao
-
-    if no_ar:
-        if vel_y < -80:
-            frame_idx = 6
-        elif vel_y > 80:
-            frame_idx = 7
-        else:
-            frame_idx = 4 if int(tempo_animacao * 4) % 2 == 0 else 5
-    else:
-        if nova_direcao != 0:
-            frame_idx = 2 if int(tempo_animacao * 8) % 2 == 0 else 3
-        else:
-            frame_idx = 0 if int(tempo_animacao * 2) % 2 == 0 else 1
-
-    frame = FRAMES[frame_idx]
+    """Desenha a personagem. Respira quando parada, balança quando anda."""
+    frame = SPRITE
     if direcao == -1:
         frame = pygame.transform.flip(frame, True, False)
 
-    compensacao = int(4 * SPRITE_ESCALA)
+    # respiração quando parada
+    if not no_ar and nova_direcao == 0:
+        respiracao = math.sin(tempo_animacao * 2.5) * 2
+    # balanço quando anda
+    elif not no_ar and nova_direcao != 0:
+        respiracao = math.sin(tempo_animacao * 8) * 1.5
+    else:
+        respiracao = 0
+
     rect = frame.get_rect()
-    rect.midbottom = (int(x), int(y) + compensacao)
+    rect.midbottom = (int(x), int(y) + int(respiracao))
     TELA.blit(frame, rect)
 
 
