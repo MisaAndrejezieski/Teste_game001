@@ -1,7 +1,7 @@
 """
-Gera sprite sheet de 8 frames da personagem.
-Baseado na referência: cabelo preto com coque, olho azul, vestido preto,
-luvas longas, meia arrastão, botas longas.
+Sprite sheet em PERFIL da personagem.
+Corpo inclinado, pernas em passada, cabelo em movimento.
+Corrige o problema da cabeça flutuante (pescoço visível).
 """
 import pygame
 
@@ -12,9 +12,8 @@ NUM_FRAMES = 8
 FOLHA = pygame.Surface((SPRITE_W * NUM_FRAMES, SPRITE_H), pygame.SRCALPHA)
 
 # --- Paleta ---
-CABELO_PRETO = (30, 28, 35, 255)
+CABELO = (30, 28, 35, 255)
 CABELO_LUZ = (70, 65, 80, 255)
-CABELO_SOMBRA = (15, 13, 20, 255)
 PELE = (245, 205, 180, 255)
 PELE_SOMBRA = (210, 165, 140, 255)
 PELE_LUZ = (255, 225, 205, 255)
@@ -51,206 +50,270 @@ def linha_h(y, x0, x1, cor, frame):
 
 
 def desenhar_personagem(frame, pose):
+    """
+    Personagem de perfil.
+    CX = centro do sprite.
+    A personagem está sempre voltada pra DIREITA.
+    """
     CX = SPRITE_W // 2
 
+    # Parâmetros por pose
+    # inclinacao: deslocamento do tronco (negativo = inclina pra frente)
+    # passada: qual perna está à frente (-1, 0, 1)
+    # balanco_braco: qual braço está à frente (-1, 0, 1)
+    # altura: offset vertical geral
+    # cabelo_extra: comprimento extra do cabelo pra trás
     configs = {
-        "idle_1":    {"altura": 0,  "ombro": 0,  "cabeca": 0,  "be": -1, "bd": 1,  "perna": 0},
-        "idle_2":    {"altura": 0,  "ombro": 1,  "cabeca": 0,  "be": -1, "bd": 1,  "perna": 0},
-        "passo_1":   {"altura": 0,  "ombro": 0,  "cabeca": 1,  "be": 2,  "bd": -1, "perna": -1},
-        "passo_2":   {"altura": 0,  "ombro": 0,  "cabeca": -1, "be": -2, "bd": 1,  "perna": 1},
-        "levitar_1": {"altura": -2, "ombro": -1, "cabeca": 0,  "be": 1,  "bd": -1, "perna": 0},
-        "levitar_2": {"altura": -1, "ombro": -2, "cabeca": 0,  "be": -1, "bd": 1,  "perna": 0},
-        "levantar": {"altura": -3, "ombro": -1, "cabeca": 0,  "be": 0,  "bd": 0,  "perna": 0},
-        "cair":     {"altura": 1,  "ombro": 2,  "cabeca": 0,  "be": 0,  "bd": 0,  "perna": 0},
+        "idle_1":    {"inclinacao": 0,  "passada": 0,  "braco": 0,  "altura": 0,  "cabelo": 0},
+        "idle_2":    {"inclinacao": 0,  "passada": 0,  "braco": 0,  "altura": -1, "cabelo": 0},
+        "passo_1":   {"inclinacao": -2, "passada": -1, "braco": 1,  "altura": 0,  "cabelo": 3},
+        "passo_2":   {"inclinacao": -2, "passada": 1,  "braco": -1, "altura": 0,  "cabelo": 3},
+        "levitar_1": {"inclinacao": -1, "passada": -1, "braco": 1,  "altura": -2, "cabelo": 4},
+        "levitar_2": {"inclinacao": -1, "passada": 1,  "braco": -1, "altura": -1, "cabelo": 4},
+        "levantar": {"inclinacao": 0,  "passada": 0,  "braco": 0,  "altura": -3, "cabelo": 6},
+        "cair":     {"inclinacao": -3, "passada": -1, "braco": 1,  "altura": 1,  "cabelo": 5},
     }
     cfg = configs[pose]
+    inc = cfg["inclinacao"]
+    passada = cfg["passada"]
+    braco_frente = cfg["braco"]
     alt = cfg["altura"]
-    ombro_d = cfg["ombro"]
-    cab_d = cfg["cabeca"]
-    be = cfg["be"]
-    bd = cfg["bd"]
-    perna_d = cfg["perna"]
+    cabelo_extra = cfg["cabelo"]
 
-    COQUE_TOPO = 8 + alt
-    CABECA_TOPO = 16 + alt
-    CABECA_BASE = 38 + alt
-    PESCOCO_Y = 42 + alt
-    OMBRO_Y = 46 + alt + ombro_d
-    PEITO_Y = 58 + alt + ombro_d
-    CINTURA_Y = 72 + alt
-    QUADRIL_Y = 82 + alt
-    COXA_Y = 95 + alt
-    JOELHO_Y = 105 + alt
-    PE_Y = 124 + alt
+    # --- Coordenadas verticais (baseadas em perfil) ---
+    TOPO_CABECA = 12 + alt
+    BASE_CABECA = 34 + alt
+    PESCOCO_Y = 34 + alt
+    PESCOCO_BASE = 40 + alt
+    OMBRO_Y = 40 + alt
+    PEITO_Y = 54 + alt
+    CINTURA_Y = 68 + alt
+    QUADRIL_Y = 78 + alt
+    COXA_Y = 90 + alt
+    JOELHO_Y = 102 + alt
+    PE_Y = 122 + alt
 
-    # --- Pernas ---
-    for y in range(QUADRIL_Y + 6, COXA_Y + 4):
-        t = (y - QUADRIL_Y - 6) / (COXA_Y + 4 - QUADRIL_Y - 6)
-        larg = 5 - int(t * 1)
-        if perna_d == -1:
-            linha_h(y, CX - 4 - larg, CX - 4, PELE, frame)
-            linha_h(y, CX + 4, CX + 4 + larg - 1, PELE, frame)
-        elif perna_d == 1:
-            linha_h(y, CX - 4 - larg + 1, CX - 4, PELE, frame)
-            linha_h(y, CX + 4, CX + 4 + larg, PELE, frame)
-        else:
-            linha_h(y, CX - 4 - larg, CX - 4, PELE, frame)
-            linha_h(y, CX + 4, CX + 4 + larg, PELE, frame)
+    # offset horizontal do tronco (inclinação)
+    ox = inc
 
-    for y in range(COXA_Y + 4, JOELHO_Y):
-        t = (y - COXA_Y - 4) / (JOELHO_Y - COXA_Y - 4)
-        larg = 4 - int(t * 1)
-        linha_h(y, CX - 4 - larg, CX - 4, MEIA, frame)
-        if (y % 3) == 0:
-            px(CX - 4 - larg + 1, y, MEIA_LUZ, frame)
-        linha_h(y, CX + 4, CX + 4 + larg, MEIA, frame)
-        if (y % 3) == 0:
-            px(CX + 4 + larg - 1, y, MEIA_LUZ, frame)
+    # ============================================================
+    # PERNAS (em perfil, alternadas)
+    # ============================================================
+    # perna de trás (mais escura)
+    if passada == -1:
+        # perna esquerda atrás
+        perna_tras_x = CX - 6 + ox
+        perna_frente_x = CX + 2 + ox
+    elif passada == 1:
+        # perna direita atrás
+        perna_tras_x = CX - 6 + ox
+        perna_frente_x = CX + 2 + ox
+    else:
+        perna_tras_x = CX - 5 + ox
+        perna_frente_x = CX + 2 + ox
 
-    for y in range(JOELHO_Y, PE_Y):
-        t = (y - JOELHO_Y) / (PE_Y - JOELHO_Y)
-        larg = 4 + int(t * 1)
-        linha_h(y, CX - 4 - larg, CX - 3, BOTA, frame)
-        px(CX - 4 - larg, y, CONTORNO, frame)
-        linha_h(y, CX + 3, CX + 4 + larg, BOTA, frame)
-        px(CX + 4 + larg, y, CONTORNO, frame)
-
-    linha_h(PE_Y - 1, CX - 8, CX - 2, BOTA, frame)
-    linha_h(PE_Y - 1, CX + 2, CX + 8, BOTA, frame)
-    linha_h(PE_Y, CX - 8, CX - 2, CONTORNO, frame)
-    linha_h(PE_Y, CX + 2, CX + 8, CONTORNO, frame)
-
-    # --- Quadril ---
-    for y in range(CINTURA_Y, QUADRIL_Y + 6):
-        t = (y - CINTURA_Y) / (QUADRIL_Y + 6 - CINTURA_Y)
-        meia = 10 + int(t * 3)
-        linha_h(y, CX - meia, CX + meia, PELE, frame)
-        px(CX - meia, y, PELE_SOMBRA, frame)
-        px(CX + meia, y, PELE_SOMBRA, frame)
-
-    # --- Vestido ---
-    for y in range(OMBRO_Y + 4, QUADRIL_Y):
-        t = (y - OMBRO_Y - 4) / (QUADRIL_Y - OMBRO_Y - 4)
-        if t < 0.4:
-            meia = 9 + int(t * 2)
-        elif t < 0.6:
-            meia = 8
-        else:
-            meia = 8 + int((t - 0.6) * 4 * 8)
-        linha_h(y, CX - meia, CX + meia, VESTIDO, frame)
-        px(CX - meia, y, CONTORNO, frame)
-        px(CX + meia, y, CONTORNO, frame)
-
-    for y in range(OMBRO_Y + 6, CINTURA_Y):
-        px(CX - 1, y, VESTIDO_LUZ, frame)
-
-    for y in [60 + alt + ombro_d, 64 + alt + ombro_d, 68 + alt + ombro_d]:
-        px(CX - 1, y, VERMELHO, frame)
-        px(CX, y, VERMELHO_ESCURO, frame)
-        px(CX + 1, y, VERMELHO, frame)
-
-    for y in range(OMBRO_Y + 4, PEITO_Y):
-        t = (y - OMBRO_Y - 4) / (PEITO_Y - OMBRO_Y - 4)
-        meia = 3 + int(t * 3)
-        linha_h(y, CX - meia, CX + meia, PELE, frame)
-        px(CX - meia, y, PELE_SOMBRA, frame)
-        px(CX + meia, y, PELE_SOMBRA, frame)
-
-    for y in range(PESCOCO_Y, PESCOCO_Y + 3):
-        linha_h(y, CX - 3, CX + 3, GOLA, frame)
-
-    # --- Braços ---
-    for y in range(OMBRO_Y + 2, CINTURA_Y + 2):
-        t = (y - OMBRO_Y - 2) / (CINTURA_Y - OMBRO_Y)
-        x_e = CX - 11 - int(t * 2) + be
-        px(x_e, y, VESTIDO, frame)
-        px(x_e + 1, y, VESTIDO, frame)
-        px(x_e - 1, y, CONTORNO, frame)
-        x_d = CX + 11 + int(t * 2) + bd
-        px(x_d, y, VESTIDO, frame)
-        px(x_d - 1, y, VESTIDO, frame)
-        px(x_d + 1, y, CONTORNO, frame)
-
-    rect(CX - 13 + be, CINTURA_Y - 2, CX - 11 + be, CINTURA_Y + 1, PELE, frame)
-    rect(CX + 11 + bd, CINTURA_Y + 2, CX + 13 + bd, CINTURA_Y + 5, PELE, frame)
-
-    # --- Cabeça ---
-    for y in range(CABECA_TOPO, CABECA_BASE):
-        t = (y - CABECA_TOPO) / (CABECA_BASE - CABECA_TOPO)
+    # perna de trás
+    for y in range(QUADRIL_Y, PE_Y):
+        t = (y - QUADRIL_Y) / (PE_Y - QUADRIL_Y)
         if t < 0.5:
-            meia = 3 + int(t * 2 * 9)
+            larg = 4
         else:
-            meia = 12 - int((t - 0.5) * 2 * 7)
-        c = cab_d
-        px(CX - meia - 1 + c, y, CONTORNO, frame)
-        px(CX + meia + 1 + c, y, CONTORNO, frame)
-        linha_h(y, CX - meia + c, CX + meia + c, PELE, frame)
-        px(CX - meia + c, y, PELE_SOMBRA, frame)
-        px(CX + meia + c, y, PELE_SOMBRA, frame)
-        if y < CABECA_TOPO + 6:
-            px(CX - 1 + c, y, PELE_LUZ, frame)
-
-    rect(CX - 3, CABECA_BASE, CX + 3, PESCOCO_Y + 2, PELE, frame)
-
-    # --- Rosto ---
-    olho_y = CABECA_TOPO + 12
-    c = cab_d
-    rect(CX - 8 + c, olho_y - 1, CX - 4 + c, olho_y + 2, OLHO_BRANCO, frame)
-    rect(CX - 7 + c, olho_y, CX - 5 + c, olho_y + 1, OLHO_AZUL, frame)
-    px(CX - 6 + c, olho_y + 1, OLHO_PUPILA, frame)
-    px(CX - 7 + c, olho_y, OLHO_BRANCO, frame)
-    linha_h(olho_y - 2, CX - 8 + c, CX - 4 + c, CICLO, frame)
-    rect(CX + 4 + c, olho_y - 1, CX + 8 + c, olho_y + 2, OLHO_BRANCO, frame)
-    rect(CX + 5 + c, olho_y, CX + 7 + c, olho_y + 1, OLHO_AZUL, frame)
-    px(CX + 6 + c, olho_y + 1, OLHO_PUPILA, frame)
-    px(CX + 7 + c, olho_y, OLHO_BRANCO, frame)
-    linha_h(olho_y - 2, CX + 4 + c, CX + 8 + c, CICLO, frame)
-    linha_h(olho_y - 4, CX - 8 + c, CX - 4 + c, CABELO_PRETO, frame)
-    linha_h(olho_y - 4, CX + 4 + c, CX + 8 + c, CABELO_PRETO, frame)
-    px(CX - 1 + c, olho_y + 7, (180, 80, 90, 255), frame)
-    px(CX + c, olho_y + 7, (180, 80, 90, 255), frame)
-    px(CX + 1 + c, olho_y + 7, (180, 80, 90, 255), frame)
-
-    # --- Cabelo ---
-    for y in range(CABECA_TOPO - 4, CABECA_TOPO + 8):
-        t = (y - CABECA_TOPO + 4) / 12
-        if t < 0.4:
-            meia = 4 + int(t * 2.5 * 9)
+            larg = 4 + int((t - 0.5) * 2)
+        # meia arrastão em cima, bota embaixo
+        if y < COXA_Y + 4:
+            cor_perna = PELE
+        elif y < JOELHO_Y:
+            cor_perna = MEIA
         else:
-            meia = 13
-        linha_h(y, CX - meia + c, CX + meia + c, CABELO_PRETO, frame)
+            cor_perna = BOTA
+        linha_h(y, perna_tras_x - larg, perna_tras_x, cor_perna, frame)
 
-    for y in range(CABECA_TOPO + 4, CABECA_TOPO + 10):
-        t = (y - CABECA_TOPO - 4) / 6
-        meia = 12 - int(t * 2)
-        for x in range(CX - meia + c, CX + meia + c + 1):
+    # pé de trás
+    linha_h(PE_Y - 1, perna_tras_x - 6, perna_tras_x + 1, BOTA, frame)
+    linha_h(PE_Y, perna_tras_x - 6, perna_tras_x + 1, CONTORNO, frame)
+
+    # perna da frente (mais clara)
+    for y in range(QUADRIL_Y, PE_Y):
+        t = (y - QUADRIL_Y) / (PE_Y - QUADRIL_Y)
+        if t < 0.5:
+            larg = 5
+        else:
+            larg = 5 + int((t - 0.5) * 2)
+        if y < COXA_Y + 4:
+            cor_perna = PELE
+        elif y < JOELHO_Y:
+            cor_perna = MEIA
+            if (y % 3) == 0:
+                px(perna_frente_x - larg + 1, y, MEIA_LUZ, frame)
+        else:
+            cor_perna = BOTA
+        linha_h(y, perna_frente_x, perna_frente_x + larg, cor_perna, frame)
+        # contorno
+        if y >= JOELHO_Y:
+            px(perna_frente_x + larg, y, CONTORNO, frame)
+
+    # pé da frente
+    linha_h(PE_Y - 1, perna_frente_x, perna_frente_x + 6, BOTA, frame)
+    linha_h(PE_Y, perna_frente_x, perna_frente_x + 6, CONTORNO, frame)
+
+    # ============================================================
+    # QUADRIL
+    # ============================================================
+    for y in range(CINTURA_Y, QUADRIL_Y + 2):
+        t = (y - CINTURA_Y) / (QUADRIL_Y + 2 - CINTURA_Y)
+        meia_esq = 4 + int(t * 2)
+        meia_dir = 5 + int(t * 2)
+        linha_h(y, CX - meia_esq + ox, CX + meia_dir + ox, VESTIDO, frame)
+
+    # ============================================================
+    # VESTIDO (perfil: mais estreito do que frontal)
+    # ============================================================
+    for y in range(OMBRO_Y + 2, CINTURA_Y):
+        t = (y - OMBRO_Y - 2) / (CINTURA_Y - OMBRO_Y - 2)
+        meia = 6 + int(t * 2)
+        linha_h(y, CX - meia + ox, CX + meia + ox, VESTIDO, frame)
+        px(CX - meia + ox, y, CONTORNO, frame)
+        px(CX + meia + ox, y, CONTORNO, frame)
+        # luz no peito
+        if y > OMBRO_Y + 4 and y < CINTURA_Y - 4:
+            px(CX + 2 + ox, y, VESTIDO_LUZ, frame)
+
+    # detalhes vermelhos verticais (na lateral do vestido)
+    for y in range(OMBRO_Y + 8, CINTURA_Y - 4):
+        if (y % 4) == 0:
+            px(CX + 3 + ox, y, VERMELHO, frame)
+
+    # ============================================================
+    # PESCOÇO (agora visível, conecta cabeça ao corpo)
+    # ============================================================
+    # retângulo de pele entre o queixo e os ombros
+    for y in range(PESCOCO_Y, PESCOCO_BASE + 1):
+        linha_h(y, CX - 2 + ox, CX + 2 + ox, PELE, frame)
+        # sombra do lado esquerdo
+        px(CX - 2 + ox, y, PELE_SOMBRA, frame)
+    # sombra embaixo do queixo (dá volume)
+    linha_h(PESCOCO_Y, CX - 3 + ox, CX + 3 + ox, PELE_SOMBRA, frame)
+
+    # gola
+    for y in range(PESCOCO_BASE - 1, PESCOCO_BASE + 2):
+        linha_h(y, CX - 3 + ox, CX + 3 + ox, GOLA, frame)
+
+    # ============================================================
+    # CABEÇA (perfil, virada pra direita)
+    # ============================================================
+    # perfil: crânio com testa, nariz e queixo do lado direito
+    for y in range(TOPO_CABECA, BASE_CABECA):
+        t = (y - TOPO_CABECA) / (BASE_CABECA - TOPO_CABECA)
+        if t < 0.3:
+            # topo do crânio
+            meia_esq = 5 + int(t * 2 * 5)
+            meia_dir = 6 + int(t * 2 * 5)
+        elif t < 0.7:
+            # meio do rosto
+            meia_esq = 7
+            meia_dir = 8
+        else:
+            # queixo: estreita
+            meia_esq = 7 - int((t - 0.7) * 3 * 2)
+            meia_dir = 8 - int((t - 0.7) * 3 * 3)
+        linha_h(y, CX - meia_esq + ox, CX + meia_dir + ox, PELE, frame)
+        # contorno
+        px(CX - meia_esq - 1 + ox, y, CONTORNO, frame)
+        px(CX + meia_dir + 1 + ox, y, CONTORNO, frame)
+        # sombra na parte de trás da cabeça
+        px(CX - meia_esq + ox, y, PELE_SOMBRA, frame)
+        # nariz (pequeno, na direita)
+        if t > 0.4 and t < 0.55:
+            px(CX + meia_dir + 2 + ox, y, PELE, frame)
+            px(CX + meia_dir + 2 + ox, y, PELE_SOMBRA, frame)
+
+    # ============================================================
+    # ROSTO (perfil)
+    # ============================================================
+    olho_y = TOPO_CABECA + 11
+    # olho (um só, porque é perfil)
+    rect(CX + 2 + ox, olho_y - 1, CX + 5 + ox, olho_y + 1, OLHO_BRANCO, frame)
+    rect(CX + 3 + ox, olho_y, CX + 4 + ox, olho_y, OLHO_AZUL, frame)
+    px(CX + 4 + ox, olho_y, OLHO_PUPILA, frame)
+    px(CX + 3 + ox, olho_y - 1, OLHO_BRANCO, frame)
+    # cílios
+    linha_h(olho_y - 2, CX + 2 + ox, CX + 5 + ox, CICLO, frame)
+    # sobrancelha
+    linha_h(olho_y - 4, CX + 2 + ox, CX + 5 + ox, CABELO, frame)
+    # boca
+    px(CX + 6 + ox, olho_y + 5, (180, 80, 90, 255), frame)
+    px(CX + 7 + ox, olho_y + 5, (180, 80, 90, 255), frame)
+
+    # ============================================================
+    # CABELO (em perfil, com movimento pra trás)
+    # ============================================================
+    # topo do cabelo
+    for y in range(TOPO_CABECA - 4, TOPO_CABECA + 6):
+        t = (y - TOPO_CABECA + 4) / 10
+        if t < 0.5:
+            meia = 4 + int(t * 2 * 8)
+        else:
+            meia = 12
+        linha_h(y, CX - meia + ox, CX + meia + ox, CABELO, frame)
+
+    # franja cobre parte da testa
+    for y in range(TOPO_CABECA + 2, TOPO_CABECA + 8):
+        t = (y - TOPO_CABECA - 2) / 6
+        meia = 11 - int(t * 3)
+        for x in range(CX - meia + ox, CX + meia + ox):
             if (x + y) % 3 != 0:
-                px(x, y, CABELO_PRETO, frame)
+                px(x, y, CABELO, frame)
 
-    for y in range(CABECA_TOPO + 6, OMBRO_Y + 4):
-        t = (y - CABECA_TOPO - 6) / (OMBRO_Y + 4 - CABECA_TOPO - 6)
-        x_e = CX - 13 - int(t * 2) + c
-        px(x_e, y, CABELO_PRETO, frame)
-        px(x_e + 1, y, CABELO_PRETO, frame)
-        x_d = CX + 13 + int(t * 2) + c
-        px(x_d, y, CABELO_PRETO, frame)
-        px(x_d - 1, y, CABELO_PRETO, frame)
+    # cabelo comprido caindo pra trás (do lado esquerdo, perfil)
+    for y in range(TOPO_CABECA + 4, OMBRO_Y + 8 + cabelo_extra):
+        t = (y - TOPO_CABECA - 4) / (OMBRO_Y + 8 + cabelo_extra - TOPO_CABECA - 4)
+        # cresce pra trás conforme desce
+        x_tras = CX - 8 - int(t * 8) + ox
+        px(x_tras, y, CABELO, frame)
+        px(x_tras - 1, y, CABELO, frame)
+        px(x_tras - 2, y, CABELO, frame)
+        # luz no cabelo
+        if (y % 5) == 0:
+            px(x_tras + 1, y, CABELO_LUZ, frame)
 
-    for y in range(COQUE_TOPO - 2, COQUE_TOPO + 10):
-        t = (y - COQUE_TOPO + 2) / 12
+    # coque no topo
+    for y in range(TOPO_CABECA - 8, TOPO_CABECA - 1):
+        t = (y - (TOPO_CABECA - 8)) / 7
         if t < 0.5:
-            meia = 4 + int(t * 2 * 5)
+            meia = 3 + int(t * 2 * 5)
         else:
-            meia = 9 - int((t - 0.5) * 2 * 5)
+            meia = 8 - int((t - 0.5) * 2 * 5)
         if meia < 1:
             continue
-        linha_h(y, CX - meia + c, CX + meia + c, CABELO_PRETO, frame)
+        linha_h(y, CX - meia + ox, CX + meia + ox, CABELO, frame)
 
+    # detalhe vermelho no coque
     for dx in range(-2, 3):
-        px(CX + dx + c, COQUE_TOPO + 2, VERMELHO if dx != 0 else VERMELHO_ESCURO, frame)
+        px(CX + dx + ox, TOPO_CABECA - 6, VERMELHO if dx != 0 else VERMELHO_ESCURO, frame)
 
+    # luz no topo do cabelo
     for dx in [-3, -2, -1]:
-        px(CX + dx + c, CABECA_TOPO - 2, CABELO_LUZ, frame)
+        px(CX + dx + ox, TOPO_CABECA - 2, CABELO_LUZ, frame)
+
+    # ============================================================
+    # BRAÇOS (perfil, um à frente, um atrás)
+    # ============================================================
+    # braço de trás
+    x_braco_tras = CX - 8 + ox
+    for y in range(OMBRO_Y + 2, CINTURA_Y + 4):
+        px(x_braco_tras, y, VESTIDO, frame)
+        px(x_braco_tras - 1, y, CONTORNO, frame)
+    # mão de trás
+    rect(x_braco_tras - 1, CINTURA_Y + 4, x_braco_tras + 1, CINTURA_Y + 7, PELE, frame)
+
+    # braço da frente (balança)
+    x_braco_frente = CX + 7 + ox + (2 if braco_frente == 1 else -2 if braco_frente == -1 else 0)
+    for y in range(OMBRO_Y + 2, CINTURA_Y + 4):
+        px(x_braco_frente, y, VESTIDO, frame)
+        px(x_braco_frente + 1, y, VESTIDO, frame)
+        px(x_braco_frente + 2, y, CONTORNO, frame)
+    # mão da frente
+    rect(x_braco_frente + 1, CINTURA_Y + 4, x_braco_frente + 3, CINTURA_Y + 7, PELE, frame)
 
 
 poses = ["idle_1", "idle_2", "passo_1", "passo_2",
