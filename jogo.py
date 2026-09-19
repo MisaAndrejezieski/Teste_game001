@@ -253,4 +253,48 @@ while True:
 
     # Física vertical
     if nova_direcao != 0:
-        no_ar = True
+        no_ar = True        tempo_levitando += dt
+        altura_alvo = CHAO_Y - ALTURA_LEVITACAO + math.sin(tempo_levitando * FREQ_OSCILACAO) * AMPLITUDE_OSCILACAO
+        if y > altura_alvo:
+            y -= VELOCIDADE_SUBIDA * dt
+            if y < altura_alvo:
+                y = altura_alvo
+        else:
+            y = altura_alvo
+        vel_y = 0.0
+    else:
+        tempo_levitando = 0.0
+        vel_y += GRAVIDADE * dt
+        if vel_y > VELOCIDADE_DESCIDA:
+            vel_y = VELOCIDADE_DESCIDA
+        y += vel_y * dt
+        if y >= CHAO_Y:
+            y = CHAO_Y
+            vel_y = 0
+            no_ar = False
+
+    # Movimento horizontal
+    x += nova_direcao * VELOCIDADE_X * dt
+    x = max(40, min(LARGURA - 40, x))
+
+    # Parallax
+    off_fundo += nova_direcao * 15 * dt
+    off_medio += nova_direcao * 50 * dt
+    off_perto += nova_direcao * 110 * dt
+
+    # --- Desenho ---
+    desenhar_ceu()
+    desenhar_estrelas(tempo_animacao)
+    desenhar_lua()
+    desenhar_piramides(off_fundo)
+    desenhar_camada_senoidal(off_fundo, COR_MONTANHA, ALTURA - 240, 35, 240)
+    desenhar_nevoa(ALTURA - 210, 40, 35)
+    desenhar_camada_senoidal(off_medio, COR_DUNA_FUNDO, ALTURA - 180, 22, 150)
+    desenhar_nevoa(ALTURA - 140, 35, 30)
+    desenhar_camada_senoidal(off_medio * 1.2, COR_DUNA_MEDIO, ALTURA - 120, 16, 100)
+    desenhar_camada_senoidal(off_perto, COR_DUNA_PERTO, ALTURA - 80, 10, 70)
+    desenhar_chao_lunar()
+    desenhar_sombra(x, y, no_ar)
+    desenhar_personagem()
+
+    pygame.display.flip()
