@@ -1,55 +1,73 @@
 """
-Pega uma imagem de referência e pixeliza no tamanho especificado.
-Uso: python pixelizar.py <imagem_entrada> <largura_saida> <altura_saida>
-Exemplo: python pixelizar.py referencia.png 96 128
+Pega uma imagem de referência (PNG ou JPG) e pixeliza no tamanho especificado.
+Remove o fundo branco e gera personagem.png com transparência.
+
+Uso: python pixelizar.py <entrada> <largura_saida> <altura_saida>
+Exemplo: python pixelizar.py referencia.jpg 96 128
 """
 import os
 import sys
 
 from PIL import Image
 
-# Tenta importar pixeloe. Se não tiver, usa fallback com Pillow.
 try:
     import pixeloe
     TEM_PIXELOE = True
 except ImportError:
     TEM_PIXELOE = False
-    print("[aviso] pixeloe não instalado. Usando fallback com Pillow (qualidade menor).")
+    print("[aviso] pixeloe não instalado. Usando fallback com Pillow.")
 
 
-def pixelizar_com_pixeloe(entrada, saida, largura, altura):
-    """Usa o PixelOE para pixelizar preservando bordas."""
+def remover_fundo_branco(img, tolerancia=240):
+    """
+    Remove fundo branco (ou quase branco) de uma imagem.
+    Converte pixels claros em transparentes.
+    tolerancia: 0-255. Pixels com R, G e B acima desse valor viram transparentes.
+    """
+    img = img.convert("RGBA")
+    dados = img.getdata()
+    novos_dados = []
+    for r, g, b, a in dados:
+        if r >= tolerancia and g >= tolerancia and b >= tolerancia:
+            novos_dados.append((r, g, b, 0))  # transparente
+        else:
+            novos_dados.append((r, g, b, a))
+    img.putdata(novos_dados)
+    return img
+
+
+def pixelizar_com_pixeloe(entrada, largura, altura):
     img = Image.open(entrada).convert("RGBA")
-    # pixeloe.pixelize retorna uma imagem pixelizada
+    img = remover_fundo_branco(img)
     resultado = pixeloe.pixelize(
         img,
         target_size=(largura, altura),
-        # parâmetros de qualidade
-        thickness=2,       # espessura do contorno
-        mode="contrast",   # modo: preserva contraste
+        thickness=2,
+        mode="contrast",
     )
-    resultado.save(saida)
     return resultado
 
 
-def pixelizar_com_pillow(entrada, saida, largura, altura):
+def pixelizar_com_pillow(entrada, largura, altura):
     """
-    Fallback: reduz a imagem para o tamanho alvo e depois aumenta
-    de volta com NEAREST (vizinho mais próximo) para ficar pixelado.
+    Fallback: reduz para o tamanho alvo e depois reaumenta com NEAREST
+    para ficar pixelado de verdade (blocos duros).
     """
     img = Image.open(entrada).convert("RGBA")
-    # Primeiro passo: reduz para o tamanho alvo (isso mistura pixels)
+    img = remover_fundo_branco(img)
+    # reduz para o tamanho alvo
     pequena = img.resize((largura, altura), Image.LANCZOS)
-    # Segundo passo: reaumenta com NEAREST (fica pixelado, blocos duros)
-    # Mas como o alvo JÁ é o tamanho final, salvamos direto
-    pequena.save(saida)
+    # "quantiza" as cores pra dar aspecto de pixel art (paleta reduzida)
+    pequena = pequena.quantize(colors=32, method=Image.MEDIANCUT).convert("RGBA")
+    # reaplica transparência (a quantize pode ter quebrado o alpha)
+    pequena = remover_fundo_branco(pequena)
     return pequena
 
 
 def main():
     if len(sys.argv) < 4:
         print("Uso: python pixelizar.py <entrada> <largura> <altura>")
-        print("Exemplo: python pixelizar.py referencia.png 96 128")
+        print("Exemplo: python pixelizar.py referencia.jpg 96 128")
         sys.exit(1)
 
     entrada = sys.argv[1]
@@ -64,10 +82,11 @@ def main():
     print(f"Pixelizando {entrada} -> {saida} ({largura}x{altura})...")
 
     if TEM_PIXELOE:
-        resultado = pixelizar_com_pixeloe(entrada, saida, largura, altura)
+        resultado = pixelizar_com_pixeloe(entrada, largura, altura)
     else:
-        resultado = pixelizar_com_pillow(entrada, saida, largura, altura)
+        resultado = pixelizar_com_pillow(entrada, largura, altura)
 
+    resultado.save(saida)
     print(f"OK: {saida} gerado ({resultado.size[0]}x{resultado.size[1]})")
 
 
