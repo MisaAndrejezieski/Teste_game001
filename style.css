@@ -58,39 +58,49 @@ canvas {
   image-rendering: crisp-edges;
 }
 
-/* Base da Buro Principal */
+/* =========================================================
+   BURO (PRINCIPAL) - BASE E ESCALAS
+   ========================================================= */
 #buroSprite {
-  width: 180px;
-  height: 180px;
+  width: 160px;
+  height: 160px;
   object-fit: contain;
-  transform: translate(-50%, -100%);
+  /* Ancoragem firme no chão pelo centro inferior */
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%) scale(1);
 }
 
-/* Compensação de escala específica para o pulo pequeno (muse-dash-buro003.gif) */
+/* Corrige o GIF do pulo pequeno aumentando a escala sem tirar do chão */
 #buroSprite.pulo-pequeno {
-  width: 400px;
-  height: 400px;
+  transform: translate(-50%, -100%) scale(1.8);
+}
+
+/* Pulo especial em proporção maior */
+#buroSprite.pulo-especial {
+  transform: translate(-50%, -100%) scale(1.6);
 }
 
 /* Buro Fantasma (Morte) */
 #buroSprite.morte {
-  width: 200px;
-  height: 200px;
   opacity: 0.85;
+  transform: translate(-50%, -100%) scale(1.2);
 }
 
-/* Inimiga Normal */
+/* =========================================================
+   INIMIGA - BASE E ESCALAS
+   ========================================================= */
 .inimigaSprite {
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
   object-fit: contain;
-  transform: scaleX(-1) translate(50%, -100%);
+  /* Ancoragem no chão para a inimiga virada para a esquerda */
+  transform-origin: bottom center;
+  transform: scaleX(-1) translate(50%, -100%) scale(1);
 }
 
-/* Inimiga quando mata a principal (inim004.gif): EM GRANDE DESTAQUE */
+/* Inimiga no golpe fatal (inim004.gif) - Aumentada proporcionalmente fincada no chão */
 .inimigaSprite.vitoria {
-  width: 600px;
-  height: 600px;
+  transform: scaleX(-1) translate(50%, -100%) scale(2.2);
 }
 
 #menuSprite {
