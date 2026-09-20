@@ -165,3 +165,11 @@ h2 {
 .parallax-layer { position:absolute; inset:0; background-repeat:repeat-x; background-size:auto 100%; }
 .layer-row { display:grid; grid-template-columns: 90px 1fr 60px; gap:6px; align-items:center; margin:6px 0; font-size:0.75rem; }
 .layer-row select, .layer-row input { background:#121214; border:1px solid #383845; color:#fff; padding:4px; border-radius:4px; font-size:0.72rem; min-width:0; }
+
+.layer-row { grid-template-columns: 80px 1fr 55px 28px !important; }
+.btn-clear-layer {
+  background:#e53935; color:#fff; border:0; border-radius:4px;
+  cursor:pointer; font-weight:bold; font-size:0.8rem;
+  padding:4px 0; width:100%;
+}
+.btn-clear-layer:hover { filter:brightness(1.15); }
