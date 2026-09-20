@@ -23,7 +23,9 @@ LINHAS = 3
 SPRITE_W = LARG_TOTAL // COLUNAS
 SPRITE_H = ALT_TOTAL // LINHAS
 
-SPRITE_ESCALA = 2.5
+# --- AJUSTE DE TAMANHO ---
+# Reduzido de 2.5 para 1.2 para a personagem ficar menor na tela
+SPRITE_ESCALA = 1.2 
 
 def pegar_frame(coluna, linha):
     """Recorta um frame específico da grade 3x3."""
@@ -34,10 +36,11 @@ def pegar_frame(coluna, linha):
         sub, (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
     )
 
-# Recorta os frames principais
-FRAME_FRENTE = pegar_frame(1, 2)   # Frente (Centro, Baixo)
-FRAME_COSTAS = pegar_frame(1, 0)   # Costas (Centro, Cima)
-FRAME_PERFIL = pegar_frame(0, 1)   # Perfil/Lado (Esquerda, Meio)
+# Frames disponíveis na folha 3x3
+FRAME_FRENTE  = pegar_frame(1, 2)  # Baixo centro
+FRAME_COSTAS  = pegar_frame(1, 0)  # Cima centro
+FRAME_PERFIL  = pegar_frame(0, 1)  # Esquerda meio
+FRAME_DIAG_FZ = pegar_frame(0, 2)  # Frente-esquerda
 
 # --- Cores do Cenário ---
 COR_CEU_TOPO = (12, 10, 30)
@@ -85,12 +88,12 @@ estrelas = [
 
 def criar_particula(px, py):
     particulas.append({
-        "x": px + random.uniform(-12, 12),
+        "x": px + random.uniform(-8, 8),
         "y": py + random.uniform(-2, 4),
-        "vel_x": random.uniform(-25, 25),
-        "vel_y": random.uniform(15, 45),
+        "vel_x": random.uniform(-20, 20),
+        "vel_y": random.uniform(15, 40),
         "vida": 1.0,
-        "tam": random.uniform(2, 4)
+        "tam": random.uniform(1.5, 3)
     })
 
 def atualizar_desenhar_particulas(dt):
@@ -102,7 +105,7 @@ def atualizar_desenhar_particulas(dt):
         p["x"] += p["vel_x"] * dt
         p["y"] += p["vel_y"] * dt
         alpha = int(255 * p["vida"])
-        surf = pygame.Surface((p["tam"], p["tam"]), pygame.SRCALPHA)
+        surf = pygame.Surface((int(p["tam"]), int(p["tam"])), pygame.SRCALPHA)
         surf.fill((*COR_PARTICULA, alpha))
         TELA.blit(surf, (p["x"], p["y"]))
 
@@ -142,7 +145,7 @@ def desenhar_dunas(offset, cor, alt_base, amp, comp):
 def desenhar_sombra(cx, cy):
     dist = CHAO_Y - cy
     fator = max(0.2, 1.0 - dist / 160.0)
-    w, h = int(38 * fator), int(8 * fator)
+    w, h = int(24 * fator), int(6 * fator)
     if w > 0 and h > 0:
         s = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.ellipse(s, (0, 0, 0, 110), (0, 0, w, h))
@@ -167,9 +170,11 @@ while True:
         direcao = nova_direcao
 
     # Controles Verticais / Flutuação
+    subindo = False
     if teclas[pygame.K_SPACE] or teclas[pygame.K_UP]:
         vel_y += FORCA_FLUTUACAO * dt * 7.5
         criar_particula(x, y - 5)
+        subindo = True
     else:
         vel_y += GRAVIDADE * dt
 
@@ -203,14 +208,19 @@ while True:
     atualizar_desenhar_particulas(dt)
     desenhar_sombra(x, y)
 
-    # Seleção de Sprite baseada no movimento
-    if nova_direcao != 0:
-        sprite_atual = FRAME_PERFIL
-        # Espelha o sprite quando anda para a direita (pois o frame original olha para a esquerda)
+    # Lógica de seleção do sprite da folha 3x3
+    if subindo:
+        sprite_atual = FRAME_COSTAS  # Usa as costas enquanto flutua subindo
+    elif no_ar:
+        sprite_atual = FRAME_DIAG_FZ  # Usa diagonal no ar
+        if direcao == 1:
+            sprite_atual = pygame.transform.flip(sprite_atual, True, False)
+    elif nova_direcao != 0:
+        sprite_atual = FRAME_PERFIL  # Usa perfil para andar
         if direcao == 1:
             sprite_atual = pygame.transform.flip(sprite_atual, True, False)
     else:
-        sprite_atual = FRAME_FRENTE
+        sprite_atual = FRAME_FRENTE  # Parado virado para a frente
 
     rect = sprite_atual.get_rect()
     rect.midbottom = (int(x), int(y))
