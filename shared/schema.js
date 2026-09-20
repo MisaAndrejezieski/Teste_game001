@@ -186,20 +186,21 @@ function normalizeGame(data) {
     entities: {}
   };
 
-  let playerFound = false;
-  Object.keys(entities).forEach(id => {
+  const ids = Object.keys(entities).filter(Boolean);
+  const preferredPlayer = ids.includes('jogador') &&
+    normalizeEntity('jogador', entities.jogador).role === 'player'
+    ? 'jogador'
+    : ids.find(id => normalizeEntity(id, entities[id]).role === 'player');
+
+  ids.forEach(id => {
     if (!id) return;
     const entity = normalizeEntity(id, entities[id]);
-    if (entity.role === 'player') {
-      if (playerFound) {
-        entity.role = 'enemy';
-        entity.spawnSide = 'right';
-        Object.values(entity.actions).forEach(action => {
-          action.positionX = 100;
-        });
-      } else {
-        playerFound = true;
-      }
+    if (entity.role === 'player' && id !== preferredPlayer) {
+      entity.role = 'enemy';
+      entity.spawnSide = 'right';
+      Object.values(entity.actions).forEach(action => {
+        action.positionX = 100;
+      });
     }
     normalized.entities[id] = entity;
   });

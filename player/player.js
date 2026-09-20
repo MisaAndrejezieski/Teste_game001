@@ -34,6 +34,9 @@ const RUNTIME = {
     this.baseWorldSpeed = this.worldSpeed;
     this.currentSpawnRate = this.game.rules.runner.spawnRate;
     this.bestScore = Number(localStorage.getItem('ags_best_score')) || 0;
+    this.playerId = Object.keys(this.game.entities).find(id =>
+      this.game.entities[id].role === 'player'
+    );
 
     this.renderScene();
     this.buildActors();
@@ -72,7 +75,7 @@ const RUNTIME = {
 
     Object.keys(this.game.entities).forEach((id, index) => {
       const ent = this.game.entities[id];
-      if (ent.role === 'enemy') return; // spawn dinâmico
+      if (id !== this.playerId) return; // apenas o jogador fica fixo
 
       const initialAction = ent.actions.idle || ent.actions.run;
       let posXPercent = initialAction.positionX;
@@ -194,7 +197,9 @@ const RUNTIME = {
   },
 
   spawnObstacle() {
-    const enemies = Object.values(this.game.entities).filter(e => e.role === 'enemy');
+    const enemies = Object.entries(this.game.entities)
+      .filter(([id]) => id !== this.playerId)
+      .map(([, entity]) => entity);
     if (enemies.length === 0) return;
     const ent = enemies[Math.floor(Math.random()*enemies.length)];
     const container = document.getElementById('entities-container');
