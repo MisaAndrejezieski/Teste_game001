@@ -17,7 +17,7 @@ const POS_X_INICIAL = 380;
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
-  buroPuloNormal: "images/muse-dash-buro008.gif",
+  buroPuloNormal: "images/muse-dash-buro003.gif",
   buroPuloEspecial: "images/muse-dash-buro003.001.gif",
   buroTropeco: "images/muse-dash-buro007.gif",
   buroMorte: "images/muse-dash-marija.gif",
@@ -25,6 +25,14 @@ const CAMINHOS = {
   inimigaPassou: "images/inim002.gif",
   inimigaImpacto: "images/inim003.gif",
   inimigaVitoria: "images/inim004.gif"
+};
+
+// Configurações dinamicas editaveis pelo painel
+const configGifs = {
+  puloPequeno: { scale: 1.5, offsetY: 0 },
+  puloEspecial: { scale: 1.5, offsetY: 0 },
+  morte: { scale: 1.1, offsetY: 0 },
+  vitoria: { scale: 1.8, offsetY: 22 }
 };
 
 let estadoJogo = "TELA_INICIAL";
@@ -48,8 +56,8 @@ class Inimiga {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.largura = 35;
-    this.altura = 50;
+    this.largura = 40;
+    this.altura = 60;
     this.esbarrou = false;
     this.derrotouJogador = false;
     this.tempoImpacto = 0;
@@ -71,7 +79,6 @@ class Inimiga {
         this.element.classList.add("vitoria");
       }
     } else if (this.tempoImpacto > 0) {
-      // Contador para o temporizador do 1º esbarrão
       this.tempoImpacto -= dt;
       if (this.tempoImpacto <= 0) {
         this.element.src = CAMINHOS.inimigaCorrendo;
@@ -87,13 +94,19 @@ class Inimiga {
 
   acionarImpacto() {
     this.esbarrou = true;
-    this.tempoImpacto = 0.6; // Exibe o impacto por 0.6s e volta ao normal
+    this.tempoImpacto = 0.6;
     this.element.src = `${CAMINHOS.inimigaImpacto}?t=${Date.now()}`;
   }
 
   atualizarPosicaoDOM() {
     this.element.style.left = `${this.x}px`;
     this.element.style.top = `${this.y}px`;
+    
+    // Aplica o ajuste do painel na vitoria
+    if (this.element.classList.contains("vitoria")) {
+      const cfg = configGifs.vitoria;
+      this.element.style.transform = `scaleX(-1) translate(50%, -100%) translateY(${cfg.offsetY}%) scale(${cfg.scale})`;
+    }
   }
 
   destruir() {
@@ -110,7 +123,6 @@ function acaoJogador() {
     velY = FORCA_PULO;
     noChao = false;
     
-    // Contagem e lógica de alternância dos GIFs de pulo
     contadorPulos++;
     if (contadorPulos % 10 === 0) {
       spritePuloAtual = CAMINHOS.buroPuloEspecial;
@@ -141,7 +153,7 @@ function resetarJogo() {
 
   menuSprite.style.display = "none";
   buroSprite.style.display = "block";
-  buroSprite.classList.remove("morte");
+  buroSprite.className = "sprite";
 
   estadoJogo = "JOGANDO";
 }
@@ -154,7 +166,7 @@ function acionarMorte(inimigaCausadora) {
     inimigaCausadora.derrotouJogador = true;
   }
 
-  buroSprite.classList.add("morte");
+  buroSprite.className = "sprite morte";
   buroSprite.src = `${CAMINHOS.buroMorte}?t=${Date.now()}`;
 }
 
@@ -162,6 +174,60 @@ function atualizarSpriteJogador(novoSrc) {
   if (!buroSprite.src.includes(novoSrc)) {
     buroSprite.src = novoSrc;
   }
+
+  buroSprite.classList.remove("pulo-pequeno", "pulo-especial");
+
+  if (novoSrc.includes(CAMINHOS.buroPuloNormal)) {
+    buroSprite.classList.add("pulo-pequeno");
+  } else if (novoSrc.includes(CAMINHOS.buroPuloEspecial)) {
+    buroSprite.classList.add("pulo-especial");
+  }
+
+  aplicarTransformacaoBuro();
+}
+
+function aplicarTransformacaoBuro() {
+  if (buroSprite.classList.contains("pulo-pequeno")) {
+    const cfg = configGifs.puloPequeno;
+    buroSprite.style.transform = `translate(-50%, -100%) translateY(${cfg.offsetY}%) scale(${cfg.scale})`;
+  } else if (buroSprite.classList.contains("pulo-especial")) {
+    const cfg = configGifs.puloEspecial;
+    buroSprite.style.transform = `translate(-50%, -100%) translateY(${cfg.offsetY}%) scale(${cfg.scale})`;
+  } else if (buroSprite.classList.contains("morte")) {
+    const cfg = configGifs.morte;
+    buroSprite.style.transform = `translate(-50%, -100%) translateY(${cfg.offsetY}%) scale(${cfg.scale})`;
+  } else {
+    buroSprite.style.transform = `translate(-50%, -100%) scale(1)`;
+  }
+}
+
+// Vincula o painel HTML às variáveis do JS
+function configurarPainelAjustes() {
+  const entradas = [
+    { key: "puloPequeno", scaleId: "scale_puloPequeno", offsetId: "offset_puloPequeno" },
+    { key: "puloEspecial", scaleId: "scale_puloEspecial", offsetId: "offset_puloEspecial" },
+    { key: "morte", scaleId: "scale_morte", offsetId: "offset_morte" },
+    { key: "vitoria", scaleId: "scale_vitoria", offsetId: "offset_vitoria" }
+  ];
+
+  entradas.forEach(item => {
+    const inputScale = document.getElementById(item.scaleId);
+    const inputOffset = document.getElementById(item.offsetId);
+
+    if (inputScale) {
+      inputScale.addEventListener("input", (e) => {
+        configGifs[item.key].scale = parseFloat(e.target.value) || 1;
+        aplicarTransformacaoBuro();
+      });
+    }
+
+    if (inputOffset) {
+      inputOffset.addEventListener("input", (e) => {
+        configGifs[item.key].offsetY = parseFloat(e.target.value) || 0;
+        aplicarTransformacaoBuro();
+      });
+    }
+  });
 }
 
 function gameLoop(tempoAtual) {
@@ -193,13 +259,13 @@ function gameLoop(tempoAtual) {
       inimigas.push(new Inimiga(LARGURA + 20, CHAO_Y));
     }
 
-    const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
+    const rectJogador = { x: posX - 20, y: posY - 60, largura: 40, altura: 60 };
 
     for (let i = inimigas.length - 1; i >= 0; i--) {
       let ini = inimigas[i];
       ini.atualizar(dt, posX);
 
-      if (ini.x < -100) {
+      if (ini.x < -120) {
         ini.destruir();
         inimigas.splice(i, 1);
         continue;
@@ -268,4 +334,5 @@ function gameLoop(tempoAtual) {
   requestAnimationFrame(gameLoop);
 }
 
+configurarPainelAjustes();
 requestAnimationFrame(gameLoop);
