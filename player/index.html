@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player — Anime Game Studio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-stage">
+    <div id="background-layer"></div>
+
+    <div id="fighting-ui" class="hidden">
+      <div class="hp-bar-container player1">
+        <span id="p1-name">P1</span>
+        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="hp-bar-container player2">
+        <span id="p2-name">P2</span>
+        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <div id="ground-line"></div>
+    <div id="entities-container"></div>
+
+    <div id="hud">
+      <span id="hud-title">Jogo</span>
+      <button id="btn-exit" onclick="exitGame()">⏹ Sair (Esc)</button>
+    </div>
+  </div>
+
+  <!-- Camada compartilhada -->
+  <script src="../shared/schema.js"></script>
+  <script src="../shared/storage.js"></script>
+  <!-- Runtime do jogo -->
+  <script src="player.js"></script>
+</body>
+</html>
