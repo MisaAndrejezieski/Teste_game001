@@ -1,4 +1,3 @@
-// Estrutura Principal do Projeto do Jogo com os Dados Anteriores Preservados
 let gameObject = {
   meta: {
     title: "Slot Anime Runner",
@@ -150,6 +149,24 @@ function createEntity() {
   renderStage();
 }
 
+// Nova Função: Excluir a Entidade Selecionada
+function deleteEntity() {
+  const entityKeys = Object.keys(gameObject.entities);
+  
+  if (entityKeys.length <= 1) {
+    alert('Você precisa ter pelo menos um personagem/entidade no jogo!');
+    return;
+  }
+
+  if (confirm(`Tem certeza que deseja excluir '${selectedEntityId}'?`)) {
+    delete gameObject.entities[selectedEntityId];
+    selectedEntityId = Object.keys(gameObject.entities)[0];
+    populateSelectors();
+    loadEntityPanelData();
+    renderStage();
+  }
+}
+
 function updateEntityProp(prop, value) {
   const ent = gameObject.entities[selectedEntityId];
   if (ent) {
@@ -158,7 +175,6 @@ function updateEntityProp(prop, value) {
   }
 }
 
-// Faz o upload do arquivo do PC e gera URL temporária para exibição no palco
 function uploadEntityGif(action, file) {
   if (!file) return;
   const ent = gameObject.entities[selectedEntityId];
