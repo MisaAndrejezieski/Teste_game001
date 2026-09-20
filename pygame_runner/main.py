@@ -498,9 +498,9 @@ class RunnerGame:
 
         if self.state == STATE_GAME_OVER:
             if self.won:
-                title = self.big_font.render("VOCÊ VENCEU!", True, (120, 255, 160))
+                title = self.big_font.render("VOCÊ VENCEU!", True, (255,255,255))
             else:
-                title = self.big_font.render("GAME OVER", True, (255, 80, 100))
+                title = self.big_font.render("GAME OVER", True, (255, 255, 255))
 
             hint = self.font.render(
                 "Pressione R para reiniciar ou Esc para o menu",
