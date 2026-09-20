@@ -59,48 +59,47 @@ canvas {
 }
 
 /* =========================================================
-   BURO (PRINCIPAL) - BASE E ESCALAS
+   BURO (PRINCIPAL)
    ========================================================= */
 #buroSprite {
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
   object-fit: contain;
-  /* Ancoragem firme no chão pelo centro inferior */
   transform-origin: bottom center;
   transform: translate(-50%, -100%) scale(1);
 }
 
-/* Corrige o GIF do pulo pequeno aumentando a escala sem tirar do chão */
+/* Aumenta os pulos mantendo a Buro proporcional às animações normais */
 #buroSprite.pulo-pequeno {
-  transform: translate(-50%, -100%) scale(1.8);
+  transform: translate(-50%, -100%) scale(1.6);
 }
 
-/* Pulo especial em proporção maior */
 #buroSprite.pulo-especial {
   transform: translate(-50%, -100%) scale(1.6);
 }
 
-/* Buro Fantasma (Morte) */
 #buroSprite.morte {
   opacity: 0.85;
-  transform: translate(-50%, -100%) scale(1.2);
+  transform: translate(-50%, -100%) scale(1.1);
 }
 
 /* =========================================================
-   INIMIGA - BASE E ESCALAS
+   INIMIGA - CORREÇÃO DE ANCORAGEM
    ========================================================= */
 .inimigaSprite {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   object-fit: contain;
-  /* Ancoragem no chão para a inimiga virada para a esquerda */
   transform-origin: bottom center;
   transform: scaleX(-1) translate(50%, -100%) scale(1);
 }
 
-/* Inimiga no golpe fatal (inim004.gif) - Aumentada proporcionalmente fincada no chão */
+/* CORREÇÃO DO inim004.gif: 
+   O 'translateY(22%)' empurra a imagem para baixo, compensando a 
+   transparência do arquivo e encostando a inimiga direto no chão.
+*/
 .inimigaSprite.vitoria {
-  transform: scaleX(-1) translate(50%, -100%) scale(2.2);
+  transform: scaleX(-1) translate(50%, -100%) translateY(22%) scale(1.8);
 }
 
 #menuSprite {
