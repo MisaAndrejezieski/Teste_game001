@@ -1,6 +1,5 @@
 import random
 import sys
-import time
 
 import pygame
 from PIL import Image
@@ -14,15 +13,16 @@ pygame.display.set_caption("Runner Infinite - Muse Dash Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Leitor de GIFs via PIL ---
-def carregar_gif(caminho_arquivo, escala=1.0, inverter_x=False):
+# --- Otimização: Carregador e Otimizador de GIFs ---
+def carregar_gif_otimizado(caminho_arquivo, escala=1.0, inverter_x=False):
+    """Carrega o GIF, escala e converte para o formato nativo da GPU/PyGame uma única vez."""
     try:
         pil_img = Image.open(caminho_arquivo)
     except Exception as e:
         print(f"Erro ao carregar {caminho_arquivo}: {e}")
-        surf = pygame.Surface((100, 100))
+        surf = pygame.Surface((50, 50))
         surf.fill((255, 105, 180))
-        return [surf]
+        return [surf.convert_alpha()]
 
     frames = []
     try:
@@ -31,6 +31,7 @@ def carregar_gif(caminho_arquivo, escala=1.0, inverter_x=False):
             largura, altura = frame_rgba.size
             dados = frame_rgba.tobytes()
             
+            # Converte para PyGame Surface
             surf = pygame.image.fromstring(dados, (largura, altura), "RGBA")
             
             if inverter_x:
@@ -40,8 +41,9 @@ def carregar_gif(caminho_arquivo, escala=1.0, inverter_x=False):
                 novo_w = int(largura * escala)
                 novo_h = int(altura * escala)
                 surf = pygame.transform.scale(surf, (novo_w, novo_h))
-                
-            frames.append(surf)
+            
+            # convert_alpha() crucial para performance fluida no PyGame
+            frames.append(surf.convert_alpha())
             pil_img.seek(pil_img.tell() + 1)
     except EOFError:
         pass
@@ -69,21 +71,22 @@ class AnimacaoGIF:
         return self.frames[self.frame_atual]
 
 
-# --- Carregamento de Animações da Jogadora ---
+# --- Carregamento Pré-Otimizado das Animações ---
+print("Otimizando e carregando sprites na memória...")
+
 GIFS = {
-    "INICIAL": AnimacaoGIF(carregar_gif("images/muse-dash-buro.gif", escala=0.6), fps=10),
-    "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=14),
-    "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=14),
-    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro008.gif", escala=0.5), fps=14),
-    "TROPECO": AnimacaoGIF(carregar_gif("images/muse-dash-buro007.gif", escala=0.5), fps=10),
-    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marij a.gif", escala=0.5), fps=10),
+    "INICIAL": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro.gif", escala=0.6), fps=10),
+    "ANDANDO_1": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro001.gif", escala=0.5), fps=14),
+    "ANDANDO_2": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro002.gif", escala=0.5), fps=14),
+    "PULO": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro008.gif", escala=0.5), fps=14),
+    "TROPECO": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro007.gif", escala=0.5), fps=10),
+    "MORTE": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-marij a.gif", escala=0.5), fps=10),
 }
 
-# --- Carregamento de Animações da Inimiga (Reduzida e Invertida) ---
 ANIMS_INIMIGA = {
-    "CORRENDO": carregar_gif("images/inim001.gif", escala=0.22, inverter_x=True),
-    "PASSOU": carregar_gif("images/inim002.gif", escala=0.22, inverter_x=True),
-    "IMPACTO": carregar_gif("images/inim003.gif", escala=0.22, inverter_x=True),
+    "CORRENDO": carregar_gif_otimizado("images/inim001.gif", escala=0.22, inverter_x=True),
+    "PASSOU": carregar_gif_otimizado("images/inim002.gif", escala=0.22, inverter_x=True),
+    "IMPACTO": carregar_gif_otimizado("images/inim003.gif", escala=0.22, inverter_x=True),
 }
 
 # --- Fontes e Cores ---
@@ -94,12 +97,11 @@ COR_FUNDO = (25, 20, 35)
 COR_CHAO = (180, 80, 120)
 COR_TEXTO = (255, 240, 250)
 
-# --- Física do Runner ---
+# --- Física e Configurações do Jogo ---
 CHAO_Y = ALTURA - 80
 GRAVIDADE = 1300.0
 FORCA_PULO = -420.0
 
-# --- Classe da Inimiga ---
 class Inimiga:
     def __init__(self, x, y):
         self.anim_correndo = AnimacaoGIF(ANIMS_INIMIGA["CORRENDO"], fps=12)
@@ -112,7 +114,6 @@ class Inimiga:
     def atualizar(self, dt, velocidade, pos_x_jogador):
         self.rect.x -= int(velocidade * dt)
         
-        # Atualiza a animação correspondente ao estado
         if self.esbarrou:
             self.anim_impacto.atualizar(dt)
         elif self.rect.right < pos_x_jogador:
@@ -145,7 +146,7 @@ no_chao = True
 
 inimigas = []
 tempo_spawn = 0.0
-VELOCIDADE_CENARIO = 500.0  # Jogo mais rápido!
+VELOCIDADE_CENARIO = 500.0
 
 def resetar_jogo():
     global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, tempo_tropeco, esbarroes_sofridos, inimigas, estado_jogo
@@ -177,18 +178,15 @@ while True:
             elif estado_jogo == "MENU_REINICIAR":
                 resetar_jogo()
 
-    # --- Atualização do Jogo ---
     if estado_jogo == "TELA_INICIAL":
         GIFS["INICIAL"].atualizar(dt)
 
     elif estado_jogo == "JOGANDO":
         tempo_corrida += dt
 
-        # Temporizador de Tropeço
         if tempo_tropeco > 0:
             tempo_tropeco -= dt
 
-        # Física do Pulo
         vel_y += GRAVIDADE * dt
         pos_y += vel_y * dt
 
@@ -197,13 +195,11 @@ while True:
             vel_y = 0.0
             no_chao = True
 
-        # Spawning de Inimigas
         tempo_spawn += dt
         if tempo_spawn >= random.uniform(1.2, 2.2):
             tempo_spawn = 0.0
             inimigas.append(Inimiga(LARGURA + 20, CHAO_Y))
 
-        # Colisão e Atualização das Inimigas
         rect_jogador = pygame.Rect(pos_x - 20, pos_y - 60, 40, 60)
 
         for ini in inimigas[:]:
@@ -217,7 +213,6 @@ while True:
                 intersecao = rect_jogador.clip(ini.rect)
                 ini.esbarrou = True
                 
-                # Colisão leve vs Colisão frontal fatal
                 if intersecao.width < 18 and rect_jogador.centerx < ini.rect.centerx:
                     esbarroes_sofridos += 1
                     if esbarroes_sofridos >= 2:
@@ -229,7 +224,6 @@ while True:
                     estado_jogo = "MORTO"
                     tempo_morte = 0.0
 
-        # Seleção de Animação da Jogadora
         if tempo_tropeco > 0:
             anim_ativa = GIFS["TROPECO"]
         elif not no_chao:
@@ -262,11 +256,9 @@ while True:
     elif estado_jogo in ("JOGANDO", "MORTO", "MENU_REINICIAR"):
         pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y, LARGURA, ALTURA - CHAO_Y))
 
-        # Desenhar Inimigas
         for ini in inimigas:
             ini.desenhar(TELA, pos_x)
 
-        # Desenhar Jogadora
         if estado_jogo in ("MORTO", "MENU_REINICIAR"):
             frame = GIFS["MORTE"].obter_frame()
         elif tempo_tropeco > 0:
@@ -281,7 +273,6 @@ while True:
         rect = frame.get_rect(midbottom=(int(pos_x), int(pos_y)))
         TELA.blit(frame, rect)
 
-        # Interface
         if estado_jogo == "JOGANDO":
             txt_vidas = FONTE_SUB.render(f"Esbarrões: {esbarroes_sofridos}/2", True, COR_TEXTO)
             TELA.blit(txt_vidas, (20, 20))
