@@ -75,7 +75,5 @@ ENEMY_ACTIONS = {
 #   WORLD_SPEED * velocidade_relativa
 
 SCENERY = [
-    ("cenario004.jpg", 0.15),   # camada distante (mais lenta)
-    ("cenario004.jpg", 0.45),   # camada intermediária
-    ("cenario004.jpg", 0.85),   # camada próxima (mais rápida)
+    ("cenario004.jpg", 0.5),
 ]
