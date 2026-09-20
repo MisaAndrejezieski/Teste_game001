@@ -8,17 +8,22 @@
 </head>
 <body>
   <div id="game-stage">
+    <div id="parallax-stage">
+      <div class="parallax-layer" data-layer="0"></div>
+      <div class="parallax-layer" data-layer="1"></div>
+      <div class="parallax-layer" data-layer="2"></div>
+    </div>
     <div id="background-layer"></div>
 
     <div id="fighting-ui" class="hidden">
       <div class="hp-bar-container player1">
         <span id="p1-name">P1</span>
-        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
+        <div class="hp-bar"><div class="hp-fill" id="p1-hp" style="width:100%;"></div></div>
       </div>
       <div class="vs-badge">VS</div>
       <div class="hp-bar-container player2">
         <span id="p2-name">P2</span>
-        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
+        <div class="hp-bar"><div class="hp-fill" id="p2-hp" style="width:100%;"></div></div>
       </div>
     </div>
 
@@ -27,14 +32,18 @@
 
     <div id="hud">
       <span id="hud-title">Jogo</span>
+      <span id="hud-lives"></span>
       <button id="btn-exit" onclick="exitGame()">⏹ Sair (Esc)</button>
+    </div>
+
+    <div id="game-over" class="hidden">
+      <h1>GAME OVER</h1>
+      <button onclick="exitGame()">Sair</button>
     </div>
   </div>
 
-  <!-- Camada compartilhada -->
   <script src="../shared/schema.js"></script>
   <script src="../shared/storage.js"></script>
-  <!-- Runtime do jogo -->
   <script src="player.js"></script>
 </body>
 </html>
