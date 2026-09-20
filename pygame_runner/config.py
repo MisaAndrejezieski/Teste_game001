@@ -22,28 +22,26 @@ GROUND_Y = 500
 # MUNDO / FÍSICA
 # =============================================================
 
-WORLD_SPEED = 320           # px/s — velocidade base do mundo
-SPAWN_INTERVAL = 1.5        # segundos entre spawns de inimigos
-PLAYER_X = 180              # posição X fixa da Nora
-DAMAGE_COOLDOWN = 0.9       # segundos de invulnerabilidade após tomar dano
+WORLD_SPEED = 320
+SPAWN_INTERVAL = 1.5
+PLAYER_X = 180
+DAMAGE_COOLDOWN = 0.9
 MAX_LIVES = 3
 
-GRAVITY = 2200              # px/s² — quanto maior, mais rápido cai
-JUMP_SPEED = 900            # px/s — velocidade inicial do pulo
+GRAVITY = 2200
+JUMP_SPEED = 900
 
 
 # =============================================================
 # ESCALA DOS PERSONAGENS
 # =============================================================
-# 1.0 = tamanho original do GIF
-# < 1.0 = menor, > 1.0 = maior
 
 NORA_SCALE = 0.15
 ENEMY_SCALE = 0.12
 
 
 # =============================================================
-# ANIMAÇÕES DA NORA (player)
+# ANIMAÇÕES DA NORA
 # =============================================================
 
 NORA_ACTIONS = {
@@ -66,17 +64,29 @@ ENEMY_ACTIONS = {
 
 
 # =============================================================
-# CENÁRIO (paralaxe com 3 camadas distintas)
+# CENÁRIO — PARALAXE REAL A PARTIR DE UMA ÚNICA IMAGEM
 # =============================================================
-# Lista de (arquivo, velocidade_relativa)
-# Ordem: do mais distante (lento) para o mais próximo (rápido)
+# O cenario004.jpg é CORTADO em 3 faixas horizontais.
+# Cada faixa vira uma "camada" independente, rolando em
+# velocidade própria. Isso cria paralaxe de verdade com
+# uma imagem só.
 #
-# IMPORTANTE: use imagens DIFERENTES em cada camada.
-# Repetir a mesma imagem cria efeito de "ghosting" e não
-# dá sensação de profundidade.
+# Estrutura de cada tupla:
+#   (arquivo, y_inicio_%, y_fim_%, velocidade_relativa)
+#
+# y_inicio_% e y_fim_% são em FRAÇÃO da altura da imagem (0.0 a 1.0)
+# Ex:
+#   (0.00, 0.40) → do topo até 40% da altura
+#   (0.40, 0.75) → de 40% até 75% da altura
+#   (0.75, 1.00) → de 75% até o fim
 
 SCENERY = [
-    ("cenario004.jpg", 0.10),   # fundo distante (mais lento)
-    ("cenario002.jpg", 0.35),   # meio
-    ("cenario001.jpg", 0.85),   # frente (mais rápido)
+    # Céu + montanhas distantes — rola devagar (parece longe)
+    ("cenario004.jpg", 0.00, 0.40, 0.15),
+
+    # Árvores, casas, torii — rola em velocidade média
+    ("cenario004.jpg", 0.40, 0.75, 0.45),
+
+    # Chão, grama, pedras — rola rápido (parece perto)
+    ("cenario004.jpg", 0.75, 1.00, 1.00),
 ]
