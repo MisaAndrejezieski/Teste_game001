@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ajuste de Proporções - Slot Anime</title>
+  <title>Engine de Personagens - Slot Anime</title>
   <style>
     * {
       box-sizing: border-box;
@@ -39,7 +39,7 @@
       height: 4px;
       background: #ff4081;
       box-shadow: 0 0 10px #ff4081;
-      z-index: 1;
+      z-index: 10;
     }
 
     .sprite-container {
@@ -48,15 +48,6 @@
       display: flex;
       justify-content: center;
       align-items: flex-end;
-      z-index: 2;
-    }
-
-    #buro-container {
-      left: 20%;
-    }
-
-    #enemy-container {
-      right: 20%;
     }
 
     .sprite-container img {
@@ -65,9 +56,14 @@
       transform-origin: bottom center;
     }
 
-    /* Painel de Controles */
+    /* Layers de Z-Index */
+    .layer-background { z-index: 2; }
+    .layer-ground { z-index: 11; }
+    .layer-foreground { z-index: 20; }
+
+    /* Painel Lateral */
     #control-panel {
-      width: 380px;
+      width: 420px;
       background: #1e1e24;
       border-left: 2px solid #32323d;
       padding: 20px;
@@ -103,29 +99,42 @@
       justify-content: space-between;
       margin-bottom: 8px;
       font-size: 0.85rem;
+      gap: 8px;
     }
 
     .field label {
       flex: 1;
     }
 
+    .field input[type="text"],
+    .field input[type="number"],
+    .field select {
+      background: #121214;
+      border: 1px solid #383845;
+      color: #fff;
+      padding: 5px;
+      border-radius: 4px;
+      flex: 1.2;
+      font-size: 0.8rem;
+    }
+
     .field input[type="range"] {
-      flex: 1.5;
-      margin: 0 8px;
+      flex: 1.2;
     }
 
     .field span {
-      width: 50px;
+      width: 45px;
       text-align: right;
       font-family: monospace;
       color: #ffeb3b;
     }
 
-    .active-info {
-      font-size: 0.8rem;
-      color: #00e5ff;
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
       margin-bottom: 8px;
-      word-break: break-all;
     }
 
     .btn-grid {
@@ -151,74 +160,135 @@
       background: #5c6bc0;
     }
 
+    .btn-add {
+      background: #00b0ff;
+      width: 100%;
+      margin-top: 5px;
+    }
+    .btn-add:hover { background: #40c4ff; }
+
     #export-btn {
       background: #4caf50;
       padding: 12px;
       font-size: 0.9rem;
       margin-top: auto;
     }
-
-    #export-btn:hover {
-      background: #66bb6a;
-    }
+    #export-btn:hover { background: #66bb6a; }
   </style>
 </head>
 <body>
 
   <div id="game-stage">
     <div id="ground-line"></div>
-
-    <div id="buro-container" class="sprite-container">
-      <img id="buro-img" src="images/muse-dash-buro_anda_normal.gif" alt="Buro" />
-    </div>
-
-    <div id="enemy-container" class="sprite-container">
-      <img id="enemy-img" src="images/inimiga_caminha.gif" alt="Inimiga" />
-    </div>
+    <!-- Personagens serão injetados dinamicamente aqui -->
   </div>
 
   <div id="control-panel">
-    <h2>Ajustes de Proporção</h2>
+    <h2>Gerenciador de Personagens</h2>
 
-    <!-- Ações da Buro -->
+    <!-- Seletor de Personagem Ativo -->
     <div class="control-group">
-      <h3>Testar Buro</h3>
-      <div class="btn-grid">
-        <button onclick="testBuro('run_normal')">Corrida Normal</button>
-        <button onclick="testBuro('run_10s')">Corrida 10s</button>
-        <button onclick="testBuro('jump_normal')">Pulo Normal</button>
-        <button onclick="testBuro('jump_special')">Pulo Especial</button>
-        <button onclick="testBuro('bump')">Esbarrão</button>
-        <button onclick="testBuro('victory')">Vitória</button>
-        <button onclick="testBuro('defeat')">Morte (Marija)</button>
-        <button onclick="testBuro('menu')">Menu Principal</button>
+      <h3>Selecione o Personagem</h3>
+      <div class="field">
+        <label>Personagem:</label>
+        <select id="char-selector" onchange="selectCharacter(this.value)">
+          <!-- Opções preenchidas via JS -->
+        </select>
       </div>
     </div>
 
-    <!-- Ações da Inimiga -->
+    <!-- Criar Novo Personagem -->
     <div class="control-group">
-      <h3>Testar Inimiga</h3>
-      <div class="btn-grid">
-        <button onclick="testEnemy('walk')">Caminhada</button>
-        <button onclick="testEnemy('bump')">Esbarrão</button>
-        <button onclick="testEnemy('pass')">Passou Direto</button>
-        <button onclick="testEnemy('kill')">Ataque / Vitória (inim004)</button>
+      <h3>Novo Personagem</h3>
+      <div class="field">
+        <label>ID / Nome:</label>
+        <input type="text" id="new-char-id" placeholder="ex: inimiga_voadora" />
+      </div>
+      <button class="btn-add" onclick="createNewCharacter()">+ Criar Personagem</button>
+    </div>
+
+    <!-- Propriedades Físicas e Camada -->
+    <div class="control-group">
+      <h3>Física e Colisão</h3>
+      <div class="field">
+        <label>Camada (Z-Index):</label>
+        <select id="prop-layer" onchange="updateCharProp('layer', this.value)">
+          <option value="foreground">Na frente da cena</option>
+          <option value="ground">Em cima do chão</option>
+          <option value="background">Atrás da cena</option>
+        </select>
+      </div>
+      <div class="checkbox-field">
+        <input type="checkbox" id="prop-density" onchange="updateCharProp('hasDensity', this.checked)" />
+        <label for="prop-density">Possui corpo/densidade (Interage com objetos)</label>
+      </div>
+      <div class="field">
+        <label>Chances Extras (Vidas):</label>
+        <input type="number" id="prop-lives" min="0" max="99" onchange="updateCharProp('extraLives', parseInt(this.value))" />
       </div>
     </div>
 
-    <!-- Ajuste do Sprite Selecionado -->
+    <!-- Movimento e Ações -->
     <div class="control-group">
-      <h3>Ajuste do Sprite Ativo</h3>
-      <div id="active-sprite-name" class="active-info">Editando: muse-dash-buro_anda_normal.gif</div>
+      <h3>Regras de Ação e Física</h3>
       <div class="field">
-        <label>Escala (Tamanho):</label>
-        <input type="range" id="active-scale" min="0.1" max="3" step="0.05" value="1" oninput="updateActiveSprite('scale', this.value)" />
-        <span id="v-active-scale">1.00</span>
+        <label>Movimento Base:</label>
+        <select id="prop-state" onchange="updateCharProp('baseState', this.value)">
+          <option value="idle">Parado</option>
+          <option value="run">Correndo</option>
+        </select>
       </div>
       <div class="field">
-        <label>Ajuste de Chão (Y):</label>
-        <input type="range" id="active-offset-y" min="-150" max="150" value="0" oninput="updateActiveSprite('offsetY', this.value)" />
-        <span id="v-active-offset-y">0px</span>
+        <label>Direção:</label>
+        <select id="prop-dir" onchange="updateCharProp('direction', this.value)">
+          <option value="left-to-right">Esquerda → Direita</option>
+          <option value="right-to-left">Direita → Esquerda</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Força do Pulo (px):</label>
+        <input type="number" id="prop-jump" min="0" max="500" onchange="updateCharProp('jumpHeight', parseInt(this.value))" />
+      </div>
+      <div class="field">
+        <label>Tempo Flutuação (ms):</label>
+        <input type="number" id="prop-float" min="0" max="10000" step="100" onchange="updateCharProp('floatTime', parseInt(this.value))" />
+      </div>
+    </div>
+
+    <!-- GIFs Cadastrados por Ação -->
+    <div class="control-group">
+      <h3>GIFs por Ação</h3>
+      <div class="field">
+        <label>Corrida / Parado:</label>
+        <input type="text" id="gif-run" onchange="updateCharGif('run', this.value)" placeholder="images/..." />
+      </div>
+      <div class="field">
+        <label>Pulo:</label>
+        <input type="text" id="gif-jump" onchange="updateCharGif('jump', this.value)" placeholder="images/..." />
+      </div>
+      <div class="field">
+        <label>Flutuando:</label>
+        <input type="text" id="gif-float" onchange="updateCharGif('float', this.value)" placeholder="images/..." />
+      </div>
+      <div class="field">
+        <label>Esbarrão:</label>
+        <input type="text" id="gif-bump" onchange="updateCharGif('bump', this.value)" placeholder="images/..." />
+      </div>
+      <div class="field">
+        <label>Morte / Eliminação:</label>
+        <input type="text" id="gif-defeat" onchange="updateCharGif('defeat', this.value)" placeholder="images/..." />
+      </div>
+    </div>
+
+    <!-- Testar Ações no Palco -->
+    <div class="control-group">
+      <h3>Testar Ações na Tela</h3>
+      <div class="btn-grid">
+        <button onclick="triggerAction('run')">Mover / Correr</button>
+        <button onclick="triggerAction('jump')">Testar Pulo</button>
+        <button onclick="triggerAction('float')">Testar Flutuação</button>
+        <button onclick="triggerAction('bump')">Testar Esbarrão</button>
+        <button onclick="triggerAction('defeat')">Testar Morte</button>
       </div>
     </div>
 
@@ -226,131 +296,237 @@
   </div>
 
   <script>
-    const ASSETS = {
-      buro: {
-        menu: 'images/muse-dash-buro_tela principal.gif',
-        runNormal: 'images/muse-dash-buro_anda_normal.gif',
-        run10s: 'images/muse-dash-buro_andar_depois_de_10s.gif',
-        jumpNormal: 'images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif',
-        jumpSpecial: 'images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif',
-        bump: 'images/muse-dash-buro_segunda_imagem_do_esbarrao.gif',
-        victory: 'images/muse-dash-buro_chega_na_linha_de_vitoria.gif',
-        defeat: 'images/muse-dash-marija_morte.gif'
-      },
-      enemy: {
-        walk: 'images/inimiga_caminha.gif',
-        bump: 'images/inimiga_esbarra_na_principal.gif',
-        pass: 'images/inimiga_passa_da_principal.gif',
-        kill: 'images/inim004.gif'
+    // Estrutura de dados expansível com suporte a N personagens
+    const gameEngine = {
+      characters: {
+        buro: {
+          id: "buro",
+          name: "Buro (Principal)",
+          layer: "foreground",
+          hasDensity: true,
+          extraLives: 3,
+          baseState: "run",
+          direction: "left-to-right",
+          jumpHeight: 150,
+          floatTime: 800,
+          scale: 0.9,
+          offsetY: -60,
+          gifs: {
+            run: "images/muse-dash-buro_anda_normal.gif",
+            jump: "images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif",
+            float: "images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif",
+            bump: "images/muse-dash-buro_segunda_imagem_do_esbarrao.gif",
+            defeat: "images/muse-dash-marija_morte.gif"
+          }
+        },
+        inimiga_01: {
+          id: "inimiga_01",
+          name: "Inimiga Terrestre",
+          layer: "ground",
+          hasDensity: true,
+          extraLives: 0,
+          baseState: "run",
+          direction: "right-to-left",
+          jumpHeight: 0,
+          floatTime: 0,
+          scale: 0.35,
+          offsetY: -150,
+          gifs: {
+            run: "images/inimiga_caminha.gif",
+            jump: "",
+            float: "",
+            bump: "images/inimiga_esbarra_na_principal.gif",
+            defeat: "images/inim004.gif"
+          }
+        }
       }
     };
 
-    const defaultConfig = {
-      "timings": {
-        "jumpNormal": 400,
-        "jumpSpecial": 500,
-        "bump": 600
-      },
-      "sprites": {
-        "images/muse-dash-buro_anda_normal.gif": { "scale": 0.9, "offsetY": -60 },
-        "images/muse-dash-buro_andar_depois_de_10s.gif": { "scale": 0.8, "offsetY": -60 },
-        "images/muse-dash-buro_primeira_imagem_do_pulo.gif": { "scale": 1, "offsetY": 0 },
-        "images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif": { "scale": 0.4, "offsetY": -150 },
-        "images/muse-dash-buro_primeira_imagem_do_pulo_especial.gif": { "scale": 1, "offsetY": 0 },
-        "images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif": { "scale": 0.9, "offsetY": -60 },
-        "images/muse-dash-buro_primeira_imagem_do_esbarrao.gif": { "scale": 1, "offsetY": 0 },
-        "images/muse-dash-buro_segunda_imagem_do_esbarrao.gif": { "scale": 0.8, "offsetY": -60 },
-        "images/muse-dash-buro_chega_na_linha_de_vitoria.gif": { "scale": 0.95, "offsetY": -60 },
-        "images/muse-dash-buro_tela principal.gif": { "scale": 1, "offsetY": 0 },
-        "images/muse-dash-marija_morte.gif": { "scale": 0.7, "offsetY": -60 },
-        "images/inimiga_caminha.gif": { "scale": 0.35, "offsetY": -150 },
-        "images/inimiga_esbarra_na_principal.gif": { "scale": 0.35, "offsetY": -150 },
-        "images/inimiga_passa_da_principal.gif": { "scale": 0.35, "offsetY": -150 },
-        "images/inim004.gif": { "scale": 0.35, "offsetY": -150 }
+    let selectedCharId = "buro";
+
+    // Inicialização da interface
+    function init() {
+      const savedData = localStorage.getItem('slot_anime_engine');
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed.characters) gameEngine.characters = parsed.characters;
       }
-    };
 
-    const savedData = localStorage.getItem('slot_anime_config');
-    const config = savedData ? JSON.parse(savedData) : defaultConfig;
-
-    let activeSprite = ASSETS.buro.runNormal;
-    let activeImgElement = null;
-
-    const buroImg = document.getElementById('buro-img');
-    const enemyImg = document.getElementById('enemy-img');
-
-    function saveToLocalStorage() {
-      localStorage.setItem('slot_anime_config', JSON.stringify(config));
+      renderStage();
+      populateSelector();
+      loadPanelData();
     }
 
-    function applySpriteStyle(imgElement, spriteName) {
-      if (!config.sprites[spriteName]) {
-        config.sprites[spriteName] = { scale: 1, offsetY: 0 };
+    function saveState() {
+      localStorage.setItem('slot_anime_engine', JSON.stringify(gameEngine));
+    }
+
+    // Renderiza todos os personagens no palco
+    function renderStage() {
+      const stage = document.getElementById('game-stage');
+      
+      // Mantém a linha do chão
+      stage.innerHTML = '<div id="ground-line"></div>';
+
+      Object.keys(gameEngine.characters).forEach(id => {
+        const char = gameEngine.characters[id];
+        
+        const container = document.createElement('div');
+        container.id = `char-container-${id}`;
+        container.className = `sprite-container layer-${char.layer}`;
+        
+        // Posicionamento conforme direção
+        if (char.direction === 'left-to-right') {
+          container.style.left = '20%';
+        } else {
+          container.style.right = '20%';
+        }
+
+        const img = document.createElement('img');
+        img.id = `char-img-${id}`;
+        img.src = char.gifs.run || char.gifs.bump || char.gifs.defeat || '';
+        img.style.transform = `scale(${char.scale || 1}) translateY(${-(char.offsetY || 0)}px)`;
+        
+        // Espelha a imagem conforme a direção
+        if (char.direction === 'right-to-left') {
+          img.style.transform += ' scaleX(-1)';
+        }
+
+        container.appendChild(img);
+        stage.appendChild(container);
+      });
+    }
+
+    function populateSelector() {
+      const selector = document.getElementById('char-selector');
+      selector.innerHTML = '';
+      Object.keys(gameEngine.characters).forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.innerText = gameEngine.characters[id].name || id;
+        selector.appendChild(opt);
+      });
+      selector.value = selectedCharId;
+    }
+
+    function loadPanelData() {
+      const char = gameEngine.characters[selectedCharId];
+      if (!char) return;
+
+      document.getElementById('prop-layer').value = char.layer;
+      document.getElementById('prop-density').checked = char.hasDensity;
+      document.getElementById('prop-lives').value = char.extraLives;
+      document.getElementById('prop-state').value = char.baseState;
+      document.getElementById('prop-dir').value = char.direction;
+      document.getElementById('prop-jump').value = char.jumpHeight;
+      document.getElementById('prop-float').value = char.floatTime;
+
+      document.getElementById('gif-run').value = char.gifs.run || '';
+      document.getElementById('gif-jump').value = char.gifs.jump || '';
+      document.getElementById('gif-float').value = char.gifs.float || '';
+      document.getElementById('gif-bump').value = char.gifs.bump || '';
+      document.getElementById('gif-defeat').value = char.gifs.defeat || '';
+    }
+
+    function selectCharacter(id) {
+      selectedCharId = id;
+      loadPanelData();
+    }
+
+    function createNewCharacter() {
+      const idInput = document.getElementById('new-char-id');
+      const rawId = idInput.value.trim().toLowerCase().replace(/\s+/g, '_');
+
+      if (!rawId) {
+        alert('Digite um ID válido para o novo personagem.');
+        return;
       }
-      const spriteConfig = config.sprites[spriteName];
-      imgElement.src = spriteName;
-      imgElement.style.transform = `scale(${spriteConfig.scale}) translateY(${-spriteConfig.offsetY}px)`;
-    }
 
-    function selectSpriteToEdit(spriteName, imgElement) {
-      activeSprite = spriteName;
-      activeImgElement = imgElement;
-      document.getElementById('active-sprite-name').innerText = `Editando: ${spriteName.replace('images/', '')}`;
-      
-      const currentConfig = config.sprites[spriteName] || { scale: 1, offsetY: 0 };
-      document.getElementById('active-scale').value = currentConfig.scale;
-      document.getElementById('v-active-scale').innerText = Number(currentConfig.scale).toFixed(2);
-      document.getElementById('active-offset-y').value = currentConfig.offsetY;
-      document.getElementById('v-active-offset-y').innerText = currentConfig.offsetY + 'px';
-    }
-
-    function updateActiveSprite(prop, value) {
-      if (!activeSprite || !activeImgElement) return;
-      config.sprites[activeSprite][prop] = parseFloat(value);
-      applySpriteStyle(activeImgElement, activeSprite);
-      
-      if (prop === 'scale') {
-        document.getElementById('v-active-scale').innerText = Number(value).toFixed(2);
-      } else if (prop === 'offsetY') {
-        document.getElementById('v-active-offset-y').innerText = value + 'px';
+      if (gameEngine.characters[rawId]) {
+        alert('Já existe um personagem com esse ID!');
+        return;
       }
+
+      gameEngine.characters[rawId] = {
+        id: rawId,
+        name: idInput.value.trim(),
+        layer: "ground",
+        hasDensity: true,
+        extraLives: 1,
+        baseState: "run",
+        direction: "right-to-left",
+        jumpHeight: 100,
+        floatTime: 0,
+        scale: 1,
+        offsetY: 0,
+        gifs: { run: "", jump: "", float: "", bump: "", defeat: "" }
+      };
+
+      idInput.value = '';
+      selectedCharId = rawId;
+      saveState();
+      renderStage();
+      populateSelector();
+      loadPanelData();
+    }
+
+    function updateCharProp(prop, value) {
+      const char = gameEngine.characters[selectedCharId];
+      if (!char) return;
+
+      char[prop] = value;
+      saveState();
+      renderStage();
+    }
+
+    function updateCharGif(action, value) {
+      const char = gameEngine.characters[selectedCharId];
+      if (!char) return;
+
+      char.gifs[action] = value;
+      saveState();
       
-      saveToLocalStorage();
+      const img = document.getElementById(`char-img-${selectedCharId}`);
+      if (img && action === 'run') img.src = value;
     }
 
-    function testBuro(action) {
-      if (action === 'run_normal') selectSpriteToEdit(ASSETS.buro.runNormal, buroImg);
-      else if (action === 'run_10s') selectSpriteToEdit(ASSETS.buro.run10s, buroImg);
-      else if (action === 'jump_normal') selectSpriteToEdit(ASSETS.buro.jumpNormal, buroImg);
-      else if (action === 'jump_special') selectSpriteToEdit(ASSETS.buro.jumpSpecial, buroImg);
-      else if (action === 'bump') selectSpriteToEdit(ASSETS.buro.bump, buroImg);
-      else if (action === 'victory') selectSpriteToEdit(ASSETS.buro.victory, buroImg);
-      else if (action === 'defeat') selectSpriteToEdit(ASSETS.buro.defeat, buroImg);
-      else if (action === 'menu') selectSpriteToEdit(ASSETS.buro.menu, buroImg);
+    function triggerAction(action) {
+      const char = gameEngine.characters[selectedCharId];
+      const img = document.getElementById(`char-img-${selectedCharId}`);
+      const container = document.getElementById(`char-container-${selectedCharId}`);
 
-      applySpriteStyle(buroImg, activeSprite);
-    }
+      if (!char || !img) return;
 
-    function testEnemy(action) {
-      if (action === 'walk') selectSpriteToEdit(ASSETS.enemy.walk, enemyImg);
-      else if (action === 'bump') selectSpriteToEdit(ASSETS.enemy.bump, enemyImg);
-      else if (action === 'pass') selectSpriteToEdit(ASSETS.enemy.pass, enemyImg);
-      else if (action === 'kill') selectSpriteToEdit(ASSETS.enemy.kill, enemyImg);
+      if (char.gifs[action]) {
+        img.src = char.gifs[action];
+      }
 
-      applySpriteStyle(enemyImg, activeSprite);
+      // Efeito de Pulo Visual
+      if (action === 'jump' && char.jumpHeight > 0) {
+        container.style.transition = 'transform 0.3s ease-out';
+        container.style.transform = `translateY(${-char.jumpHeight}px)`;
+        setTimeout(() => {
+          container.style.transform = 'translateY(0px)';
+        }, 300);
+      }
+
+      // Efeito de Flutuação
+      if (action === 'float' && char.floatTime > 0) {
+        container.style.transition = 'transform 0.4s ease-out';
+        container.style.transform = `translateY(${-char.jumpHeight || -80}px)`;
+        setTimeout(() => {
+          container.style.transform = 'translateY(0px)';
+        }, char.floatTime);
+      }
     }
 
     function exportConfig() {
-      const output = JSON.stringify(config, null, 2);
+      const output = JSON.stringify(gameEngine, null, 2);
       navigator.clipboard.writeText(output);
-      alert('Configurações copiadas para a área de transferência!');
+      alert('Configurações dos personagens copiadas com sucesso!');
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      applySpriteStyle(buroImg, ASSETS.buro.runNormal);
-      applySpriteStyle(enemyImg, ASSETS.enemy.walk);
-      selectSpriteToEdit(ASSETS.buro.runNormal, buroImg);
-    });
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
