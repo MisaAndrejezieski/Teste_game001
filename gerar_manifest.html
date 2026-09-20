@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gerar manifest.json — Anime Game Studio</title>
+  <style>
+    body { font-family: monospace; background:#121214; color:#eee; padding:24px; }
+    h1 { color:#ff4081; }
+    button { padding:10px 16px; background:#00b0ff; border:0; color:#fff;
+             font-weight:bold; border-radius:4px; cursor:pointer; }
+    pre { background:#1e1e24; padding:12px; border-radius:6px; max-height:60vh;
+          overflow:auto; border:1px solid #333; }
+    .ok { color:#4caf50; }
+    .err { color:#e53935; }
+  </style>
+</head>
+<body>
+  <h1>Gerar images/manifest.json</h1>
+  <p>1) Garanta que o Live Server está rodando (127.0.0.1:5500).</p>
+  <p>2) Clique no botão. Vai baixar <b>manifest.json</b>.</p>
+  <p>3) Mova o arquivo baixado para dentro da pasta <code>images/</code>.</p>
+
+  <button id="go">Escanear images/ e gerar manifest</button>
+  <p id="status"></p>
+  <pre id="out"></pre>
+
+<script>
+// Lista de extensões consideradas assets válidos
+const EXTS = ['.gif', '.png', '.jpg', '.jpeg', '.webp', '.svg'];
+
+// Como o navegador não deixa "listar diretório" via fetch direto,
+// tentamos duas estratégias:
+//  A) fetch('images/') e parsear o HTML do Live Server (funciona em 127.0.0.1:5500)
+//  B) se falhar, o usuário informa manualmente (fallback).
+
+async function scanImages() {
+  const res = await fetch('images/', { cache: 'no-store' });
+  if (!res.ok) throw new Error('Não consegui acessar images/ (HTTP ' + res.status + ')');
+  const html = await res.text();
+
+  // O Live Server gera <a href="nome.gif">nome.gif</a>
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const links = [...doc.querySelectorAll('a')];
+
+  const files = links
+    .map(a => decodeURIComponent(a.getAttribute('href') || ''))
+    .map(h => h.replace(/^.*\//, ''))                // só o nome
+    .filter(n => n && !n.startsWith('.'))
+    .filter(n => EXTS.some(ext => n.toLowerCase().endsWith(ext)));
+
+  return [...new Set(files)].sort();
+}
+
+document.getElementById('go').addEventListener('click', async () => {
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+  status.textContent = 'Escaneando...';
+  status.className = '';
+  out.textContent = '';
+
+  try {
+    const files = await scanImages();
+    const manifest = { generatedAt: new Date().toISOString(), files };
+
+    out.textContent = JSON.stringify(manifest, null, 2);
+    status.textContent = `${files.length} arquivos encontrados. Baixando manifest.json...`;
+    status.className = 'ok';
+
+    const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'manifest.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    status.textContent = 'Erro: ' + e.message +
+      ' — verifique se o Live Server está ativo e se você abriu esta página via http://127.0.0.1:5500/.';
+    status.className = 'err';
+  }
+});
+</script>
+</body>
+</html>
