@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ajuste de Proporções e Tempos - Slot Anime</title>
+  <title>Ajuste de Proporções - Slot Anime</title>
   <style>
     * {
       box-sizing: border-box;
@@ -178,22 +178,24 @@
   </div>
 
   <div id="control-panel">
-    <h2>Ajustes de Proporção & Tempos</h2>
+    <h2>Ajustes de Proporção</h2>
 
+    <!-- Ações da Buro -->
     <div class="control-group">
       <h3>Testar Buro</h3>
       <div class="btn-grid">
         <button onclick="testBuro('run_normal')">Corrida Normal</button>
         <button onclick="testBuro('run_10s')">Corrida 10s</button>
-        <button onclick="testBuro('jump_normal')">Pulo Normal (2 Fases)</button>
-        <button onclick="testBuro('jump_special')">Pulo Especial (2 Fases)</button>
-        <button onclick="testBuro('bump')">Esbarrão (2 Fases)</button>
+        <button onclick="testBuro('jump_normal')">Pulo Normal</button>
+        <button onclick="testBuro('jump_special')">Pulo Especial</button>
+        <button onclick="testBuro('bump')">Esbarrão</button>
         <button onclick="testBuro('victory')">Vitória</button>
         <button onclick="testBuro('defeat')">Morte (Marija)</button>
         <button onclick="testBuro('menu')">Menu Principal</button>
       </div>
     </div>
 
+    <!-- Ações da Inimiga -->
     <div class="control-group">
       <h3>Testar Inimiga</h3>
       <div class="btn-grid">
@@ -204,25 +206,7 @@
       </div>
     </div>
 
-    <div class="control-group">
-      <h3>Tempos de Transição (ms)</h3>
-      <div class="field">
-        <label>Pulo Normal (Fase 1 → 2):</label>
-        <input type="range" id="t-jump-normal" min="100" max="1500" value="400" oninput="updateTiming('jumpNormal', this.value)" />
-        <span id="v-t-jump-normal">400ms</span>
-      </div>
-      <div class="field">
-        <label>Pulo Especial (Fase 1 → 2):</label>
-        <input type="range" id="t-jump-special" min="100" max="1500" value="500" oninput="updateTiming('jumpSpecial', this.value)" />
-        <span id="v-t-jump-special">500ms</span>
-      </div>
-      <div class="field">
-        <label>Esbarrão (Fase 1 → 2):</label>
-        <input type="range" id="t-bump" min="100" max="2000" value="600" oninput="updateTiming('bump', this.value)" />
-        <span id="v-t-bump">600ms</span>
-      </div>
-    </div>
-
+    <!-- Ajuste do Sprite Selecionado -->
     <div class="control-group">
       <h3>Ajuste do Sprite Ativo</h3>
       <div id="active-sprite-name" class="active-info">Editando: muse-dash-buro_anda_normal.gif</div>
@@ -247,12 +231,9 @@
         menu: 'images/muse-dash-buro_tela principal.gif',
         runNormal: 'images/muse-dash-buro_anda_normal.gif',
         run10s: 'images/muse-dash-buro_andar_depois_de_10s.gif',
-        jumpNormal1: 'images/muse-dash-buro_primeira_imagem_do_pulo.gif',
-        jumpNormal2: 'images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif',
-        jumpSpecial1: 'images/muse-dash-buro_primeira_imagem_do_pulo_especial.gif',
-        jumpSpecial2: 'images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif',
-        bump1: 'images/muse-dash-buro_primeira_imagem_do_esbarrao.gif',
-        bump2: 'images/muse-dash-buro_segunda_imagem_do_esbarrao.gif',
+        jumpNormal: 'images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif',
+        jumpSpecial: 'images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif',
+        bump: 'images/muse-dash-buro_segunda_imagem_do_esbarrao.gif',
         victory: 'images/muse-dash-buro_chega_na_linha_de_vitoria.gif',
         defeat: 'images/muse-dash-marija_morte.gif'
       },
@@ -264,37 +245,43 @@
       }
     };
 
-    const config = {
-      timings: {
-        jumpNormal: 400,
-        jumpSpecial: 500,
-        bump: 600
+    const defaultConfig = {
+      "timings": {
+        "jumpNormal": 400,
+        "jumpSpecial": 500,
+        "bump": 600
       },
-      sprites: {
-        'images/muse-dash-buro_anda_normal.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_andar_depois_de_10s.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_primeira_imagem_do_pulo.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_primeira_imagem_do_pulo_especial.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_primeira_imagem_do_esbarrao.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_segunda_imagem_do_esbarrao.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_chega_na_linha_de_vitoria.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-buro_tela principal.gif': { scale: 1, offsetY: 0 },
-        'images/muse-dash-marija_morte.gif': { scale: 1, offsetY: 0 },
-        'images/inimiga_caminha.gif': { scale: 1, offsetY: 0 },
-        'images/inimiga_esbarra_na_principal.gif': { scale: 1, offsetY: 0 },
-        'images/inimiga_passa_da_principal.gif': { scale: 1, offsetY: 0 },
-        'images/inim004.gif': { scale: 1, offsetY: 0 }
+      "sprites": {
+        "images/muse-dash-buro_anda_normal.gif": { "scale": 0.9, "offsetY": -60 },
+        "images/muse-dash-buro_andar_depois_de_10s.gif": { "scale": 0.8, "offsetY": -60 },
+        "images/muse-dash-buro_primeira_imagem_do_pulo.gif": { "scale": 1, "offsetY": 0 },
+        "images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif": { "scale": 0.4, "offsetY": -150 },
+        "images/muse-dash-buro_primeira_imagem_do_pulo_especial.gif": { "scale": 1, "offsetY": 0 },
+        "images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif": { "scale": 0.9, "offsetY": -60 },
+        "images/muse-dash-buro_primeira_imagem_do_esbarrao.gif": { "scale": 1, "offsetY": 0 },
+        "images/muse-dash-buro_segunda_imagem_do_esbarrao.gif": { "scale": 0.8, "offsetY": -60 },
+        "images/muse-dash-buro_chega_na_linha_de_vitoria.gif": { "scale": 0.95, "offsetY": -60 },
+        "images/muse-dash-buro_tela principal.gif": { "scale": 1, "offsetY": 0 },
+        "images/muse-dash-marija_morte.gif": { "scale": 0.7, "offsetY": -60 },
+        "images/inimiga_caminha.gif": { "scale": 0.35, "offsetY": -150 },
+        "images/inimiga_esbarra_na_principal.gif": { "scale": 0.35, "offsetY": -150 },
+        "images/inimiga_passa_da_principal.gif": { "scale": 0.35, "offsetY": -150 },
+        "images/inim004.gif": { "scale": 0.35, "offsetY": -150 }
       }
     };
 
+    const savedData = localStorage.getItem('slot_anime_config');
+    const config = savedData ? JSON.parse(savedData) : defaultConfig;
+
     let activeSprite = ASSETS.buro.runNormal;
     let activeImgElement = null;
-    let sequenceTimeout = null;
 
     const buroImg = document.getElementById('buro-img');
     const enemyImg = document.getElementById('enemy-img');
+
+    function saveToLocalStorage() {
+      localStorage.setItem('slot_anime_config', JSON.stringify(config));
+    }
 
     function applySpriteStyle(imgElement, spriteName) {
       if (!config.sprites[spriteName]) {
@@ -327,72 +314,36 @@
       } else if (prop === 'offsetY') {
         document.getElementById('v-active-offset-y').innerText = value + 'px';
       }
-    }
-
-    function updateTiming(actionKey, value) {
-      config.timings[actionKey] = parseInt(value);
-      const label = actionKey === 'jumpNormal' ? 'jump-normal' : actionKey === 'jumpSpecial' ? 'jump-special' : 'bump';
-      document.getElementById(`v-t-${label}`).innerText = value + 'ms';
+      
+      saveToLocalStorage();
     }
 
     function testBuro(action) {
-      clearTimeout(sequenceTimeout);
+      if (action === 'run_normal') selectSpriteToEdit(ASSETS.buro.runNormal, buroImg);
+      else if (action === 'run_10s') selectSpriteToEdit(ASSETS.buro.run10s, buroImg);
+      else if (action === 'jump_normal') selectSpriteToEdit(ASSETS.buro.jumpNormal, buroImg);
+      else if (action === 'jump_special') selectSpriteToEdit(ASSETS.buro.jumpSpecial, buroImg);
+      else if (action === 'bump') selectSpriteToEdit(ASSETS.buro.bump, buroImg);
+      else if (action === 'victory') selectSpriteToEdit(ASSETS.buro.victory, buroImg);
+      else if (action === 'defeat') selectSpriteToEdit(ASSETS.buro.defeat, buroImg);
+      else if (action === 'menu') selectSpriteToEdit(ASSETS.buro.menu, buroImg);
 
-      if (action === 'run_normal') {
-        selectSpriteToEdit(ASSETS.buro.runNormal, buroImg);
-      } else if (action === 'run_10s') {
-        selectSpriteToEdit(ASSETS.buro.run10s, buroImg);
-      } else if (action === 'jump_normal') {
-        selectSpriteToEdit(ASSETS.buro.jumpNormal1, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
-        sequenceTimeout = setTimeout(() => {
-          selectSpriteToEdit(ASSETS.buro.jumpNormal2, buroImg);
-          applySpriteStyle(buroImg, activeSprite);
-        }, config.timings.jumpNormal);
-        return;
-      } else if (action === 'jump_special') {
-        selectSpriteToEdit(ASSETS.buro.jumpSpecial1, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
-        sequenceTimeout = setTimeout(() => {
-          selectSpriteToEdit(ASSETS.buro.jumpSpecial2, buroImg);
-          applySpriteStyle(buroImg, activeSprite);
-        }, config.timings.jumpSpecial);
-        return;
-      } else if (action === 'bump') {
-        selectSpriteToEdit(ASSETS.buro.bump1, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
-        sequenceTimeout = setTimeout(() => {
-          selectSpriteToEdit(ASSETS.buro.bump2, buroImg);
-          applySpriteStyle(buroImg, activeSprite);
-        }, config.timings.bump);
-        return;
-      } else if (action === 'victory') {
-        selectSpriteToEdit(ASSETS.buro.victory, buroImg);
-      } else if (action === 'defeat') {
-        selectSpriteToEdit(ASSETS.buro.defeat, buroImg);
-      } else if (action === 'menu') {
-        selectSpriteToEdit(ASSETS.buro.menu, buroImg);
-      }
       applySpriteStyle(buroImg, activeSprite);
     }
 
     function testEnemy(action) {
-      if (action === 'walk') {
-        selectSpriteToEdit(ASSETS.enemy.walk, enemyImg);
-      } else if (action === 'bump') {
-        selectSpriteToEdit(ASSETS.enemy.bump, enemyImg);
-      } else if (action === 'pass') {
-        selectSpriteToEdit(ASSETS.enemy.pass, enemyImg);
-      } else if (action === 'kill') {
-        selectSpriteToEdit(ASSETS.enemy.kill, enemyImg);
-      }
+      if (action === 'walk') selectSpriteToEdit(ASSETS.enemy.walk, enemyImg);
+      else if (action === 'bump') selectSpriteToEdit(ASSETS.enemy.bump, enemyImg);
+      else if (action === 'pass') selectSpriteToEdit(ASSETS.enemy.pass, enemyImg);
+      else if (action === 'kill') selectSpriteToEdit(ASSETS.enemy.kill, enemyImg);
+
       applySpriteStyle(enemyImg, activeSprite);
     }
 
     function exportConfig() {
       const output = JSON.stringify(config, null, 2);
       navigator.clipboard.writeText(output);
-      alert('Configurações salvas e copiadas!');
+      alert('Configurações copiadas para a área de transferência!');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
