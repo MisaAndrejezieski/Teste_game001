@@ -153,5 +153,6 @@ h2 {
 
 .btn-action:hover { filter: brightness(1.2); }
 .btn-blue { background: #00b0ff; }
+.btn-red { background: #e53935; }
 .btn-green { background: #4caf50; }
 .btn-orange { background: #ff9800; }
