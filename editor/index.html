@@ -51,7 +51,8 @@
       <h3>2. Cenário</h3>
 
       <div class="field">
-      <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Limpar cenário</button>
+        <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Limpar cenário</button>
+      </div>
 
       <!-- Camadas de paralaxe (modo runner) -->
       <div id="layers-block">
@@ -120,7 +121,7 @@
       <div class="field"><label>Velocidade:</label>
         <input type="number" id="prop-speed" min="0" max="1000" /></div>
       <div class="field"><label>Força Pulo (px):</label>
-        <input type="number" id="prop-jump" min="0" max="500" /></div>
+        <input type="number" id="prop-jump" min="0" max="300" /></div>
       <div class="field"><label>Escala:</label>
         <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" /></div>
       <div class="field"><label>Ajuste Chão (Y):</label>
@@ -150,7 +151,7 @@
 
     <!-- 7. PROJETO -->
     <div class="control-group">
-      <h3>8. Projeto</h3>
+      <h3>7. Projeto</h3>
       <button class="btn-action btn-green" onclick="saveProjectAs()">💾 Salvar Versão</button>
       <button class="btn-action btn-blue" onclick="exportGame()">⬇️ Exportar .json</button>
       <input type="file" id="import-file" accept=".json" style="display:none;" />
@@ -160,7 +161,7 @@
 
     <!-- 8. VERSÕES -->
     <div class="control-group">
-      <h3>9. Versões Salvas</h3>
+      <h3>8. Versões Salvas</h3>
       <div class="field"><label>Carregar:</label><select id="project-list"></select></div>
       <button class="btn-action btn-blue" onclick="loadSelectedProject()">📥 Carregar Versão</button>
       <button class="btn-action btn-red" onclick="deleteSelectedProject()">🗑️ Apagar Versão</button>

@@ -78,7 +78,14 @@ const RUNTIME = {
       el.className = `sprite-container layer-${ent.layer}`;
       const img = document.createElement('img');
       const initial = ent.gifs.idle || ent.gifs.run || '';
-      if (initial) img.src = this.resolveAsset(initial);
+      const setHitbox = () => {
+        actor.hitboxWidth = img.naturalWidth || 60;
+        actor.hitboxHeight = img.naturalHeight || 60;
+      };
+      if (initial) {
+        img.addEventListener('load', setHitbox, { once: true });
+        img.src = this.resolveAsset(initial);
+      }
 
       const scale = ent.scale || 1;
       img.style.transform = `scale(${scale})`;
@@ -91,8 +98,12 @@ const RUNTIME = {
         y: 0, vx: 0, vy: 0,
         onGround: true,
         action: 'idle',
-        flip, baseOffsetY: ent.offsetY || 0
+        hitboxWidth: 60,
+        hitboxHeight: 60,
+        baseOffsetY: ent.offsetY || 0
       };
+
+      if (img.complete) setHitbox();
 
       if (ent.role === 'player') {
         this.lives = ent.extraLives || 3;
@@ -138,7 +149,7 @@ const RUNTIME = {
     if (player) {
       // pulo
       if (this.keys.jump && player.onGround) {
-        player.vy = -(player.data.jumpHeight || 150) * 4;
+        player.vy = -Math.sqrt(2 * this.GRAVITY * (player.data.jumpHeight || 150));
         player.onGround = false;
       }
       if (!player.onGround) {
@@ -190,16 +201,21 @@ const RUNTIME = {
       data: ent, el, img,
       x: window.innerWidth + 40,
       y: 0,
-      w: img.naturalWidth * scale || 60,
-      h: img.naturalHeight * scale || 60,
+      w: 60 * scale,
+      h: 60 * scale,
       dead: false
     });
+    const obstacle = this.obstacles[this.obstacles.length - 1];
+    img.addEventListener('load', () => {
+      obstacle.w = (img.naturalWidth || 60) * scale;
+      obstacle.h = (img.naturalHeight || 60) * scale;
+    }, { once: true });
   },
 
   collide(a, o) {
     const ax = a.x, ay = a.y + a.baseOffsetY;
-    const aw = a.img.naturalWidth * (a.data.scale||1) || 60;
-    const ah = a.img.naturalHeight * (a.data.scale||1) || 60;
+    const aw = (a.hitboxWidth || 60) * (a.data.scale||1);
+    const ah = (a.hitboxHeight || 60) * (a.data.scale||1);
     const ox = o.x - o.w/2, oy = o.y + (o.data.offsetY||0);
     const pad = 12;
     return (ax - aw/2 + pad < ox + o.w - pad) &&
@@ -279,6 +295,27 @@ const RUNTIME = {
     document.getElementById('game-over').classList.remove('hidden');
   },
 
+  restart() {
+    this.running = false;
+    cancelAnimationFrame(this.rafId);
+    this.obstacles.forEach(obstacle => obstacle.el.remove());
+    this.obstacles = [];
+    this.obstacleTimer = 0;
+    this.worldScroll = 0;
+    this.worldSpeed = this.baseWorldSpeed;
+    this.currentSpawnRate = this.game.rules.runner.spawnRate;
+    this.score = 0;
+    this.gameOver = false;
+    this.clearKeys();
+    document.getElementById('game-over').classList.add('hidden');
+    this.buildActors();
+    this.updateHudLives();
+    this.updateHudScore();
+    this.lastTime = performance.now();
+    this.running = true;
+    this.rafId = requestAnimationFrame(t => this.loop(t));
+  },
+
   /* ---------- INPUT ---------- */
 
   attachInput() {
@@ -317,7 +354,7 @@ function exitGame() {
 }
 
 function restartGame() {
-  window.location.reload();
+  RUNTIME.restart();
 }
 
 window.addEventListener('DOMContentLoaded', () => RUNTIME.boot());

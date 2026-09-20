@@ -51,7 +51,7 @@ function normalizeEntity(id, raw) {
     hasDensity: isBool(e.hasDensity) ? e.hasDensity : b.hasDensity,
     extraLives: numberOrDefault(e.extraLives, b.extraLives, 0, 99),
     speed: numberOrDefault(e.speed, b.speed, 0, 1000),
-    jumpHeight: numberOrDefault(e.jumpHeight, b.jumpHeight, 0, 500),
+    jumpHeight: numberOrDefault(e.jumpHeight, b.jumpHeight, 0, 300),
     floatTime: isNumber(e.floatTime) ? e.floatTime : b.floatTime,
     scale: numberOrDefault(e.scale, b.scale, 0.1, 5),
     offsetY: numberOrDefault(e.offsetY, b.offsetY, -300, 300),
