@@ -20,7 +20,7 @@ const CAMINHOS = {
   buroAndando2: "images/muse-dash-buro002.gif",
   buroPulo: "images/muse-dash-buro008.gif",
   buroTropeco: "images/muse-dash-buro007.gif",
-  buroMorte: "images/muse-dash-marij a.gif",
+  buroMorte: "images/muse-dash-marija.gif",
   inimigaCorrendo: "images/inim001.gif",
   inimigaPassou: "images/inim002.gif",
   inimigaImpacto: "images/inim003.gif"
