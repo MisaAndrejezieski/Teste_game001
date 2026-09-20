@@ -72,18 +72,18 @@ class AnimacaoGIF:
 # --- Carregamento de Animações da Jogadora ---
 GIFS = {
     "INICIAL": AnimacaoGIF(carregar_gif("images/muse-dash-buro.gif", escala=0.6), fps=10),
-    "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=12),
-    "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=12),
-    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro008.gif", escala=0.5), fps=12),
+    "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=14),
+    "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=14),
+    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro008.gif", escala=0.5), fps=14),
     "TROPECO": AnimacaoGIF(carregar_gif("images/muse-dash-buro007.gif", escala=0.5), fps=10),
     "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marij a.gif", escala=0.5), fps=10),
 }
 
-# --- Carregamento de Animações da Inimiga ---
+# --- Carregamento de Animações da Inimiga (Reduzida e Invertida) ---
 ANIMS_INIMIGA = {
-    "CORRENDO": carregar_gif("images/inim001.gif", escala=0.4),
-    "PASSOU": carregar_gif("images/inim002.gif", escala=0.4),
-    "IMPACTO": carregar_gif("images/inim003.gif", escala=0.4),
+    "CORRENDO": carregar_gif("images/inim001.gif", escala=0.22, inverter_x=True),
+    "PASSOU": carregar_gif("images/inim002.gif", escala=0.22, inverter_x=True),
+    "IMPACTO": carregar_gif("images/inim003.gif", escala=0.22, inverter_x=True),
 }
 
 # --- Fontes e Cores ---
@@ -96,17 +96,17 @@ COR_TEXTO = (255, 240, 250)
 
 # --- Física do Runner ---
 CHAO_Y = ALTURA - 80
-GRAVIDADE = 1200.0
-FORCA_PULO = -380.0  # Pulo ajustado para ficar mais baixo
+GRAVIDADE = 1300.0
+FORCA_PULO = -420.0
 
 # --- Classe da Inimiga ---
 class Inimiga:
     def __init__(self, x, y):
-        self.anim_correndo = AnimacaoGIF(ANIMS_INIMIGA["CORRENDO"], fps=10)
-        self.anim_passou = AnimacaoGIF(ANIMS_INIMIGA["PASSOU"], fps=10)
-        self.anim_impacto = AnimacaoGIF(ANIMS_INIMIGA["IMPACTO"], fps=10)
+        self.anim_correndo = AnimacaoGIF(ANIMS_INIMIGA["CORRENDO"], fps=12)
+        self.anim_passou = AnimacaoGIF(ANIMS_INIMIGA["PASSOU"], fps=12)
+        self.anim_impacto = AnimacaoGIF(ANIMS_INIMIGA["IMPACTO"], fps=12)
         
-        self.rect = pygame.Rect(x, y - 70, 50, 70)
+        self.rect = pygame.Rect(x, y - 55, 40, 55)
         self.esbarrou = False
 
     def atualizar(self, dt, velocidade, pos_x_jogador):
@@ -145,7 +145,7 @@ no_chao = True
 
 inimigas = []
 tempo_spawn = 0.0
-VELOCIDADE_CENARIO = 350.0
+VELOCIDADE_CENARIO = 500.0  # Jogo mais rápido!
 
 def resetar_jogo():
     global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, tempo_tropeco, esbarroes_sofridos, inimigas, estado_jogo
@@ -199,12 +199,12 @@ while True:
 
         # Spawning de Inimigas
         tempo_spawn += dt
-        if tempo_spawn >= random.uniform(1.8, 3.0):
+        if tempo_spawn >= random.uniform(1.2, 2.2):
             tempo_spawn = 0.0
             inimigas.append(Inimiga(LARGURA + 20, CHAO_Y))
 
         # Colisão e Atualização das Inimigas
-        rect_jogador = pygame.Rect(pos_x - 25, pos_y - 65, 50, 65)
+        rect_jogador = pygame.Rect(pos_x - 20, pos_y - 60, 40, 60)
 
         for ini in inimigas[:]:
             ini.atualizar(dt, VELOCIDADE_CENARIO, pos_x)
@@ -218,7 +218,7 @@ while True:
                 ini.esbarrou = True
                 
                 # Colisão leve vs Colisão frontal fatal
-                if intersecao.width < 22 and rect_jogador.centerx < ini.rect.centerx:
+                if intersecao.width < 18 and rect_jogador.centerx < ini.rect.centerx:
                     esbarroes_sofridos += 1
                     if esbarroes_sofridos >= 2:
                         estado_jogo = "MORTO"
