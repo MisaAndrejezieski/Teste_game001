@@ -12,16 +12,13 @@ const CHAO_Y = ALTURA - 80;
 const GRAVIDADE = 1000;
 const FORCA_PULO = -480;
 const VELOCIDADE_CENARIO = 280;
-
-// POSIÇÃO DA PERSONAGEM PRINCIPAL:
-// Mudado de 120 para 380 para dar bastante espaço no lado esquerdo da tela
-// e permitir que a inimiga reaja e execute seus GIFs pós-colisão.
 const POS_X_INICIAL = 380;
 
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
-  buroPulo: "images/muse-dash-buro008.gif",
+  buroPuloNormal: "images/muse-dash-buro003.gif",
+  buroPuloEspecial: "images/muse-dash-buro003.001.gif",
   buroTropeco: "images/muse-dash-buro007.gif",
   buroMorte: "images/muse-dash-marija.gif",
   inimigaCorrendo: "images/inim001.gif",
@@ -35,6 +32,8 @@ let tempoCorrida = 0;
 let tempoMorte = 0;
 let tempoTropeco = 0;
 let esbarroesSofridos = 0;
+let contadorPulos = 0;
+let spritePuloAtual = CAMINHOS.buroPuloNormal;
 
 let posX = POS_X_INICIAL;
 let posY = CHAO_Y;
@@ -53,6 +52,7 @@ class Inimiga {
     this.altura = 50;
     this.esbarrou = false;
     this.derrotouJogador = false;
+    this.tempoImpacto = 0;
 
     this.element = document.createElement("img");
     this.element.className = "sprite inimigaSprite";
@@ -65,22 +65,30 @@ class Inimiga {
   atualizar(dt, posXJogador) {
     this.x -= VELOCIDADE_CENARIO * dt;
 
-    // Troca os GIFs conforme o evento com a principal
     if (this.derrotouJogador) {
       if (!this.element.src.includes(CAMINHOS.inimigaVitoria)) {
         this.element.src = CAMINHOS.inimigaVitoria;
+        this.element.classList.add("vitoria");
       }
-    } else if (this.esbarrou) {
-      if (!this.element.src.includes(CAMINHOS.inimigaImpacto)) {
-        this.element.src = CAMINHOS.inimigaImpacto;
+    } else if (this.tempoImpacto > 0) {
+      // Contador para o temporizador do 1º esbarrão
+      this.tempoImpacto -= dt;
+      if (this.tempoImpacto <= 0) {
+        this.element.src = CAMINHOS.inimigaCorrendo;
       }
-    } else if (this.x + this.largura < posXJogador) {
+    } else if (this.x + this.largura < posXJogador && !this.esbarrou) {
       if (!this.element.src.includes(CAMINHOS.inimigaPassou)) {
         this.element.src = CAMINHOS.inimigaPassou;
       }
     }
 
     this.atualizarPosicaoDOM();
+  }
+
+  acionarImpacto() {
+    this.esbarrou = true;
+    this.tempoImpacto = 0.6; // Exibe o impacto por 0.6s e volta ao normal
+    this.element.src = `${CAMINHOS.inimigaImpacto}?t=${Date.now()}`;
   }
 
   atualizarPosicaoDOM() {
@@ -101,6 +109,14 @@ function acaoJogador() {
   } else if (estadoJogo === "JOGANDO" && noChao) {
     velY = FORCA_PULO;
     noChao = false;
+    
+    // Contagem e lógica de alternância dos GIFs de pulo
+    contadorPulos++;
+    if (contadorPulos % 10 === 0) {
+      spritePuloAtual = CAMINHOS.buroPuloEspecial;
+    } else {
+      spritePuloAtual = CAMINHOS.buroPuloNormal;
+    }
   }
 }
 
@@ -118,6 +134,7 @@ function resetarJogo() {
   tempoMorte = 0;
   tempoTropeco = 0;
   esbarroesSofridos = 0;
+  contadorPulos = 0;
 
   inimigas.forEach(i => i.destruir());
   inimigas = [];
@@ -182,7 +199,7 @@ function gameLoop(tempoAtual) {
       let ini = inimigas[i];
       ini.atualizar(dt, posX);
 
-      if (ini.x < -60) {
+      if (ini.x < -100) {
         ini.destruir();
         inimigas.splice(i, 1);
         continue;
@@ -194,12 +211,12 @@ function gameLoop(tempoAtual) {
             rectJogador.y < ini.y &&
             rectJogador.y + rectJogador.altura > ini.y - ini.altura) {
           
-          ini.esbarrou = true;
           esbarroesSofridos++;
 
           if (esbarroesSofridos >= 2) {
             acionarMorte(ini);
           } else {
+            ini.acionarImpacto();
             tempoTropeco = 1.0;
           }
         }
@@ -224,7 +241,7 @@ function gameLoop(tempoAtual) {
       if (tempoTropeco > 0) {
         srcAtual = CAMINHOS.buroTropeco;
       } else if (!noChao) {
-        srcAtual = CAMINHOS.buroPulo;
+        srcAtual = spritePuloAtual;
       } else if (tempoCorrida > 5.0) {
         srcAtual = CAMINHOS.buroAndando2;
       }
@@ -240,6 +257,7 @@ function gameLoop(tempoAtual) {
     if (estadoJogo === "JOGANDO") {
       ctx.textAlign = "left";
       ctx.fillText(`Esbarrões: ${esbarroesSofridos}/2`, 20, 30);
+      ctx.fillText(`Pulos: ${contadorPulos}`, 20, 55);
     } else if (estadoJogo === "MENU_REINICIAR") {
       ctx.textAlign = "center";
       ctx.font = "bold 24px Arial";
