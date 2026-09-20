@@ -74,7 +74,7 @@ GIFS = {
     "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=12),
     "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=12),
     "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro003.gif", escala=0.5), fps=12),
-    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marij a.gif", escala=0.5), fps=10),
+    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marija.gif", escala=0.5), fps=10),
     "VITORIA": AnimacaoGIF(carregar_gif("images/muse-dash-buro004.gif", escala=0.5), fps=10),
 }
 
