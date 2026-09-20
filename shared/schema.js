@@ -7,18 +7,19 @@ const DEFAULT_ENTITY = () => ({
   hasDensity: true,
   extraLives: 3,
   speed: 200,
+  spawnSide: "right",
+  flip: false,
   jumpHeight: 150,
   floatTime: 0,
   scale: 1,
   offsetY: 0,
   positionX: 20,
-  gifs: { idle: "", run: "", jump: "", bump: "", defeat: "" }
-  ,actionSettings: {
-    idle: { scale: 1, offsetY: 0 },
-    run: { scale: 1, offsetY: 0 },
-    jump: { scale: 1, offsetY: 0 },
-    bump: { scale: 1, offsetY: 0 },
-    defeat: { scale: 1, offsetY: 0 }
+  actions: {
+    idle: { gif: "", scale: 1, positionX: 20, positionY: 0 },
+    run: { gif: "", scale: 1, positionX: 20, positionY: 0 },
+    jump: { gif: "", scale: 1, positionX: 20, positionY: 0 },
+    bump: { gif: "", scale: 1, positionX: 20, positionY: 0 },
+    defeat: { gif: "", scale: 1, positionX: 20, positionY: 0 }
   }
 });
 
@@ -49,12 +50,12 @@ const DEFAULT_GAME = () => ({
       scale: 1,
       offsetY: 0,
       positionX: 20,
-      gifs: {
-        idle: "images/muse-dash-buro_ tela principal.gif",
-        run: "images/muse-dash-buro_anda_normal.gif",
-        jump: "images/muse-dash-buro_primeira_imagem_do_pulo.gif",
-        bump: "images/muse-dash-buro_primeira_imagem_do_esbarrao.gif",
-        defeat: "images/muse-dash-marija_morte.gif"
+      actions: {
+        idle: { gif: "images/muse-dash-buro_ tela principal.gif", scale: 1, positionX: 20, positionY: 0 },
+        run: { gif: "images/muse-dash-buro_anda_normal.gif", scale: 1, positionX: 20, positionY: 0 },
+        jump: { gif: "images/muse-dash-buro_primeira_imagem_do_pulo.gif", scale: 1, positionX: 20, positionY: 0 },
+        bump: { gif: "images/muse-dash-buro_primeira_imagem_do_esbarrao.gif", scale: 1, positionX: 20, positionY: 0 },
+        defeat: { gif: "images/muse-dash-marija_morte.gif", scale: 1, positionX: 20, positionY: 0 }
       }
     },
     obstaculo: {
@@ -64,17 +65,19 @@ const DEFAULT_GAME = () => ({
       hasDensity: true,
       extraLives: 1,
       speed: 0,
+      spawnSide: "right",
+      flip: false,
       jumpHeight: 0,
       floatTime: 0,
       scale: 1,
       offsetY: 0,
       positionX: 100,
-      gifs: {
-        idle: "images/inim004.gif",
-        run: "images/inim004.gif",
-        jump: "",
-        bump: "",
-        defeat: ""
+      actions: {
+        idle: { gif: "images/inim004.gif", scale: 1, positionX: 100, positionY: 0 },
+        run: { gif: "images/inim004.gif", scale: 1, positionX: 100, positionY: 0 },
+        jump: { gif: "", scale: 1, positionX: 100, positionY: 0 },
+        bump: { gif: "", scale: 1, positionX: 100, positionY: 0 },
+        defeat: { gif: "", scale: 1, positionX: 100, positionY: 0 }
       }
     }
   }
@@ -92,13 +95,32 @@ function numberOrDefault(v, fallback, min, max) {
 function normalizeEntity(id, raw) {
   const b = DEFAULT_ENTITY();
   const e = isObject(raw) ? raw : {};
-  const actionSettings = {};
-  Object.keys(b.actionSettings).forEach(action => {
-    const settings = isObject(e.actionSettings && e.actionSettings[action])
-      ? e.actionSettings[action] : {};
-    actionSettings[action] = {
-      scale: numberOrDefault(settings.scale, e.scale, 0.1, 5),
-      offsetY: numberOrDefault(settings.offsetY, e.offsetY, -300, 300)
+  const actions = {};
+  const legacyGifs = isObject(e.gifs) ? e.gifs : {};
+  const legacySettings = isObject(e.actionSettings) ? e.actionSettings : {};
+  const sourceActions = isObject(e.actions) ? e.actions : {};
+  const actionNames = new Set([
+    ...Object.keys(b.actions), ...Object.keys(sourceActions),
+    ...Object.keys(legacyGifs), ...Object.keys(legacySettings)
+  ]);
+  actionNames.forEach(action => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(action)) return;
+    const rawAction = isObject(sourceActions[action]) ? sourceActions[action] : {};
+    const legacyAction = isObject(legacySettings[action]) ? legacySettings[action] : {};
+    const defaultAction = b.actions[action] || {
+      gif: "", scale: e.scale, positionX: e.positionX, positionY: e.offsetY
+    };
+    const legacyScale = isNumber(e.scale) ? e.scale : (defaultAction.scale || 1);
+    const legacyPositionX = isNumber(e.positionX) ? e.positionX : (defaultAction.positionX || 20);
+    const legacyPositionY = isNumber(e.offsetY) ? e.offsetY : (defaultAction.positionY || 0);
+    actions[action] = {
+      gif: isString(rawAction.gif) ? rawAction.gif
+        : (isString(legacyGifs[action]) ? legacyGifs[action] : defaultAction.gif),
+      scale: numberOrDefault(rawAction.scale, numberOrDefault(legacyAction.scale,
+        legacyScale, 0.1, 5), 0.1, 5),
+      positionX: numberOrDefault(rawAction.positionX, legacyPositionX, 0, 100),
+      positionY: numberOrDefault(rawAction.positionY,
+        numberOrDefault(legacyAction.offsetY, legacyPositionY, -300, 300), -300, 300)
     };
   });
   return {
@@ -108,19 +130,14 @@ function normalizeEntity(id, raw) {
     hasDensity: isBool(e.hasDensity) ? e.hasDensity : b.hasDensity,
     extraLives: numberOrDefault(e.extraLives, b.extraLives, 0, 99),
     speed: numberOrDefault(e.speed, b.speed, 0, 1000),
+    spawnSide: ['left', 'right'].includes(e.spawnSide) ? e.spawnSide : b.spawnSide,
+    flip: isBool(e.flip) ? e.flip : b.flip,
     jumpHeight: numberOrDefault(e.jumpHeight, b.jumpHeight, 0, 300),
     floatTime: isNumber(e.floatTime) ? e.floatTime : b.floatTime,
     scale: numberOrDefault(e.scale, b.scale, 0.1, 5),
     offsetY: numberOrDefault(e.offsetY, b.offsetY, -300, 300),
     positionX: numberOrDefault(e.positionX, b.positionX, 0, 100),
-    gifs: {
-      idle:   (e.gifs && isString(e.gifs.idle))   ? e.gifs.idle   : "",
-      run:    (e.gifs && isString(e.gifs.run))    ? e.gifs.run    : "",
-      jump:   (e.gifs && isString(e.gifs.jump))   ? e.gifs.jump   : "",
-      bump:   (e.gifs && isString(e.gifs.bump))   ? e.gifs.bump   : "",
-      defeat: (e.gifs && isString(e.gifs.defeat)) ? e.gifs.defeat : ""
-    },
-    actionSettings
+    actions
   };
 }
 
@@ -169,9 +186,22 @@ function normalizeGame(data) {
     entities: {}
   };
 
+  let playerFound = false;
   Object.keys(entities).forEach(id => {
     if (!id) return;
-    normalized.entities[id] = normalizeEntity(id, entities[id]);
+    const entity = normalizeEntity(id, entities[id]);
+    if (entity.role === 'player') {
+      if (playerFound) {
+        entity.role = 'enemy';
+        entity.spawnSide = 'right';
+        Object.values(entity.actions).forEach(action => {
+          action.positionX = 100;
+        });
+      } else {
+        playerFound = true;
+      }
+    }
+    normalized.entities[id] = entity;
   });
 
   return normalized;

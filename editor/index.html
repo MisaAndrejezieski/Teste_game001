@@ -22,7 +22,6 @@
 
     <div id="background-layer"></div>
 
-    <div id="ground-line"></div>
     <div id="entities-container"></div>
   </div>
 
@@ -123,32 +122,29 @@
         <input type="number" id="prop-speed" min="0" max="1000" /></div>
       <div class="field"><label>Força Pulo (px):</label>
         <input type="number" id="prop-jump" min="0" max="300" /></div>
-      <div class="field"><label>Escala da ação:</label>
-        <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" /></div>
-      <div class="field"><label>Ajuste da ação (Y):</label>
-        <input type="number" id="prop-offset-y" min="-300" max="300" /></div>
       <div class="field"><label>Posição X (%):</label>
         <input type="number" id="prop-position-x" min="0" max="100" /></div>
+      <div class="field"><label>Lado do obstáculo:</label>
+        <select id="prop-spawn-side">
+          <option value="right">Direita para esquerda</option>
+          <option value="left">Esquerda para direita</option>
+        </select>
+      </div>
+      <small class="field-help">O obstáculo entra pela borda escolhida e atravessa a pista em direção ao jogador.</small>
+      <div class="checkbox-field">
+        <input type="checkbox" id="prop-flip" />
+        <label for="prop-flip">Inverter GIF horizontalmente</label>
+      </div>
     </div>
 
     <!-- 5. GIFs -->
     <div class="control-group" id="group-gifs">
       <h3>5. GIFs de Animação</h3>
-      <div class="field">
-        <label>Ação em edição:</label>
-        <select id="action-selector">
-          <option value="idle">Parado</option>
-          <option value="run">Correr</option>
-          <option value="jump">Pular</option>
-          <option value="bump">Dano</option>
-          <option value="defeat">Morte</option>
-        </select>
+      <div id="actions-list"></div>
+      <div class="field new-action-field">
+        <input type="text" id="new-action-name" placeholder="ex: pulo_especial" />
+        <button class="btn-action btn-blue" onclick="createAction()">+ Criar ação</button>
       </div>
-      <div class="field"><label>Parado:</label><select id="gif-idle"></select></div>
-      <div class="field"><label>Correr:</label><select id="gif-run"></select></div>
-      <div class="field"><label>Pular:</label><select id="gif-jump"></select></div>
-      <div class="field"><label>Dano:</label><select id="gif-bump"></select></div>
-      <div class="field"><label>Morte:</label><select id="gif-defeat"></select></div>
     </div>
 
     <!-- 6. REGRAS RUNNER -->

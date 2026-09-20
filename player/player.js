@@ -74,16 +74,17 @@ const RUNTIME = {
       const ent = this.game.entities[id];
       if (ent.role === 'enemy') return; // spawn dinâmico
 
-      let posXPercent = ent.positionX;
+      const initialAction = ent.actions.idle || ent.actions.run;
+      let posXPercent = initialAction.positionX;
       const el = document.createElement('div');
       el.className = `sprite-container layer-${ent.layer}`;
       const img = document.createElement('img');
-      const initial = ent.gifs.idle || ent.gifs.run || '';
+      const initial = (ent.actions.idle && ent.actions.idle.gif) || (ent.actions.run && ent.actions.run.gif) || '';
       if (initial) {
         img.src = this.resolveAsset(initial);
       }
 
-      const scale = ent.actionSettings.idle.scale;
+      const scale = ent.actions.idle.scale;
       img.style.transform = `scale(${scale})`;
       el.appendChild(img);
       c.appendChild(el);
@@ -94,8 +95,9 @@ const RUNTIME = {
         y: 0, vx: 0, vy: 0,
         onGround: true,
         action: 'idle',
-        actionScale: ent.actionSettings.idle.scale,
-        actionOffsetY: ent.actionSettings.idle.offsetY,
+        actionScale: ent.actions.idle.scale,
+        actionPositionY: initialAction.positionY,
+        actionPositionX: initialAction.positionX,
         hitboxWidth: 60,
         hitboxHeight: 60,
         baseOffsetY: ent.offsetY || 0
@@ -172,8 +174,9 @@ const RUNTIME = {
     // obstáculos se movem
     const W = window.innerWidth;
     this.obstacles.forEach(o => {
-      o.x -= this.worldSpeed * dt;
-      if (o.x < -200) o.dead = true;
+      o.x += o.direction * this.worldSpeed * dt;
+      if ((o.direction < 0 && o.x < -200) ||
+          (o.direction > 0 && o.x > window.innerWidth + 200)) o.dead = true;
     });
 
     // colisão
@@ -198,17 +201,21 @@ const RUNTIME = {
     const el = document.createElement('div');
     el.className = `sprite-container layer-${ent.layer}`;
     const img = document.createElement('img');
-    const src = ent.gifs.run || ent.gifs.idle || '';
+      const runAction = ent.actions.run || ent.actions.idle;
+    const src = runAction.gif || '';
     if (src) img.src = this.resolveAsset(src);
-    const scale = ent.actionSettings.run.scale;
-    img.style.transform = `scale(${scale})`;
+      const scale = runAction.scale;
+      const direction = ent.spawnSide === 'left' ? 1 : -1;
+      const flip = ent.flip ? -1 : 1;
+      img.style.transform = `scale(${scale}) scaleX(${flip})`;
     el.appendChild(img);
     container.appendChild(el);
 
     this.obstacles.push({
       data: ent, el, img,
-      x: window.innerWidth + 40,
+      x: ent.spawnSide === 'left' ? -40 : window.innerWidth + 40,
       y: 0,
+      direction,
       w: 60 * scale,
       h: 60 * scale,
       dead: false
@@ -256,12 +263,12 @@ const RUNTIME = {
 
     Object.values(this.actors).forEach(a => {
       a.el.style.left = `${a.x}px`;
-      a.el.style.bottom = `${this.GROUND_Y + a.y + a.actionOffsetY}px`;
+      a.el.style.bottom = `${this.GROUND_Y + a.y + a.actionPositionY}px`;
     });
 
     this.obstacles.forEach(o => {
       o.el.style.left = `${o.x}px`;
-      o.el.style.bottom = `${this.GROUND_Y + (o.data.offsetY||0)}px`;
+        o.el.style.bottom = `${this.GROUND_Y + (o.data.actions.run.positionY || 0)}px`;
     });
 
     [0,1,2].forEach(i => {
@@ -275,12 +282,15 @@ const RUNTIME = {
 
   setAction(actor, action) {
     if (actor.action === action) return;
-    const src = actor.data.gifs[action] || actor.data.gifs.idle || actor.data.gifs.run || '';
+    const actionData = actor.data.actions[action] || actor.data.actions.idle || actor.data.actions.run;
+    const src = actionData && actionData.gif;
     if (!src) return;
-    const settings = actor.data.actionSettings[action] || actor.data.actionSettings.idle;
+    const settings = actionData;
     actor.img.src = this.resolveAsset(src);
     actor.actionScale = settings.scale;
-    actor.actionOffsetY = settings.offsetY;
+    actor.actionPositionY = settings.positionY;
+    actor.actionPositionX = settings.positionX;
+    actor.x = (settings.positionX / 100) * window.innerWidth;
     actor.img.style.transform = `scale(${actor.actionScale})`;
     actor.action = action;
   },

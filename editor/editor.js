@@ -72,11 +72,6 @@ function bindEvents() {
   // --- Entidade ---
   document.getElementById('entity-selector').addEventListener('change', e =>
     selectEntity(e.target.value));
-  document.getElementById('action-selector').addEventListener('change', e => {
-    previewAction = e.target.value;
-    loadActionSettings();
-    renderStage();
-  });
 
   // --- Propriedades ---
   document.getElementById('prop-role').addEventListener('change', e => updateProp('role', e.target.value));
@@ -85,24 +80,10 @@ function bindEvents() {
   document.getElementById('prop-lives').addEventListener('change', e => updateProp('extraLives', parseInt(e.target.value) || 0));
   document.getElementById('prop-speed').addEventListener('change', e => updateProp('speed', parseInt(e.target.value) || 0));
   document.getElementById('prop-jump').addEventListener('change', e => updateProp('jumpHeight', parseInt(e.target.value) || 0));
-  document.getElementById('prop-scale').addEventListener('change', e => updateActionProp('scale', parseFloat(e.target.value) || 1));
-  document.getElementById('prop-offset-y').addEventListener('change', e => updateActionProp('offsetY', parseInt(e.target.value) || 0));
   document.getElementById('prop-position-x').addEventListener('change', e => updateProp('positionX', parseInt(e.target.value) || 0));
+  document.getElementById('prop-spawn-side').addEventListener('change', e => updateProp('spawnSide', e.target.value));
+  document.getElementById('prop-flip').addEventListener('change', e => updateProp('flip', e.target.checked));
 
-  // --- GIFs por ação ---
-  ['idle','run','jump','bump','defeat'].forEach(action => {
-    document.getElementById(`gif-${action}`).addEventListener('change', e => {
-      if (!selectedEntityId) return;
-      const ent = game.entities[selectedEntityId];
-      if (!ent) return;
-      ent.gifs[action] = e.target.value ? `images/${e.target.value}` : "";
-      previewAction = action;
-      document.getElementById('action-selector').value = action;
-      loadActionSettings();
-      renderStage();
-      saveDebounced();
-    });
-  });
 
   // --- Regras ---
   document.getElementById('rule-runner-speed').addEventListener('change', e => {
@@ -174,9 +155,6 @@ function refreshAll() {
   // 1) Preenche TODOS os selects com o manifest
   [0, 1, 2].forEach(i =>
     fillManifestSelect(document.getElementById(`layer-${i}-img`)));
-  ['idle','run','jump','bump','defeat'].forEach(a =>
-    fillManifestSelect(document.getElementById(`gif-${a}`)));
-
   // 2) Sincroniza campos com o gameObject atual
   document.getElementById('game-title').value = game.meta.title;
 
@@ -314,14 +292,6 @@ function selectEntity(id) {
   loadEntityPanel();
 }
 
-function loadActionSettings() {
-  const e = game.entities[selectedEntityId];
-  if (!e) return;
-  const settings = e.actionSettings[previewAction];
-  document.getElementById('prop-scale').value = settings.scale;
-  document.getElementById('prop-offset-y').value = settings.offsetY;
-}
-
 function loadEntityPanel() {
   const e = game.entities[selectedEntityId];
   if (!e) return;
@@ -332,13 +302,10 @@ function loadEntityPanel() {
   document.getElementById('prop-lives').value = e.extraLives;
   document.getElementById('prop-speed').value = e.speed;
   document.getElementById('prop-jump').value = e.jumpHeight;
-  document.getElementById('action-selector').value = previewAction;
-  loadActionSettings();
   document.getElementById('prop-position-x').value = e.positionX;
-
-  ['idle','run','jump','bump','defeat'].forEach(a => {
-    document.getElementById(`gif-${a}`).value = stripPrefix(e.gifs[a]);
-  });
+  document.getElementById('prop-spawn-side').value = e.spawnSide;
+  document.getElementById('prop-flip').checked = e.flip;
+  renderActionList();
 }
 
 function createEntity() {
@@ -348,6 +315,11 @@ function createEntity() {
 
   const e = Schema.DEFAULT_ENTITY();
   e.id = id;
+  if (Object.values(game.entities).some(entity => entity.role === 'player')) {
+    e.role = 'enemy';
+    e.positionX = 100;
+    Object.values(e.actions).forEach(action => { action.positionX = 100; });
+  }
   game.entities[id] = e;
 
   inp.value = '';
@@ -377,11 +349,85 @@ function updateProp(p, v) {
   saveDebounced();
 }
 
-function updateActionProp(p, v) {
+function renderActionList() {
+  const list = document.getElementById('actions-list');
+  list.innerHTML = '';
+  const entity = game.entities[selectedEntityId];
+  if (!entity) return;
+
+  Object.keys(entity.actions).forEach(action => {
+    const settings = entity.actions[action];
+    const row = document.createElement('div');
+    row.className = `action-row${action === previewAction ? ' selected' : ''}`;
+    row.innerHTML = `
+      <div class="action-title"><strong>${action}</strong>
+        <button type="button" class="action-preview">Ver</button>
+        <button type="button" class="action-delete">Excluir</button>
+      </div>
+      <select class="action-gif"></select>
+      <label>Escala <input class="action-scale" type="number" step="0.05" min="0.1" max="5" value="${settings.scale}"></label>
+      <label>Posição X (%) <input class="action-position-x" type="number" min="0" max="100" value="${settings.positionX}"></label>
+      <label>Posição Y (px) <input class="action-position-y" type="number" min="-300" max="300" value="${settings.positionY}"></label>`;
+
+    const gifSelect = row.querySelector('.action-gif');
+    fillManifestSelect(gifSelect);
+    gifSelect.value = stripPrefix(settings.gif);
+    gifSelect.addEventListener('change', event => {
+      settings.gif = event.target.value ? `images/${event.target.value}` : '';
+      previewAction = action;
+      renderActionList();
+      renderStage();
+      saveDebounced();
+    });
+    row.querySelector('.action-scale').addEventListener('change', event => {
+      settings.scale = parseFloat(event.target.value) || 1;
+      previewAction = action;
+      renderStage();
+      saveDebounced();
+    });
+    row.querySelector('.action-position-x').addEventListener('change', event => {
+      settings.positionX = parseInt(event.target.value) || 0;
+      previewAction = action;
+      renderStage();
+      saveDebounced();
+    });
+    row.querySelector('.action-position-y').addEventListener('change', event => {
+      settings.positionY = parseInt(event.target.value) || 0;
+      previewAction = action;
+      renderStage();
+      saveDebounced();
+    });
+    row.querySelector('.action-preview').addEventListener('click', () => {
+      previewAction = action;
+      renderActionList();
+      renderStage();
+    });
+    row.querySelector('.action-delete').addEventListener('click', () => {
+      if (['idle', 'run', 'jump'].includes(action)) return;
+      delete entity.actions[action];
+      previewAction = 'idle';
+      renderActionList();
+      renderStage();
+      saveDebounced();
+    });
+    list.appendChild(row);
+  });
+}
+
+function createAction() {
   if (!selectedEntityId) return;
-  const e = game.entities[selectedEntityId];
-  if (!e) return;
-  e.actionSettings[previewAction][p] = v;
+  const input = document.getElementById('new-action-name');
+  const action = input.value.trim().toLowerCase().replace(/\s+/g, '_');
+  if (!/^[a-z0-9_-]+$/.test(action) || game.entities[selectedEntityId].actions[action]) {
+    alert('Nome inválido ou ação já existente.');
+    return;
+  }
+  game.entities[selectedEntityId].actions[action] = {
+    gif: '', scale: 1, positionX: 20, positionY: 0
+  };
+  input.value = '';
+  previewAction = action;
+  renderActionList();
   renderStage();
   saveDebounced();
 }
@@ -404,15 +450,16 @@ function renderStage() {
     let posX = e.positionX;
     el.style.left = `${posX}%`;
 
-    const src = e.gifs[previewAction] || e.gifs.idle || e.gifs.run || '';
+    const action = e.actions[previewAction] || e.actions.idle || e.actions.run;
+    const src = action && action.gif;
     if (src) {
       const img = document.createElement('img');
       img.src = resolveAsset(src);
 
-      const settings = e.actionSettings[previewAction];
-      const scale = settings.scale || 1;
-      const offY = settings.offsetY || 0;
-      img.style.transform = `scale(${scale}) translateY(${-offY}px)`;
+      const scale = action.scale || 1;
+      const posY = action.positionY || 0;
+      el.style.left = `${action.positionX}%`;
+      img.style.transform = `scale(${scale}) translateY(${-posY}px)`;
 
       el.appendChild(img);
     }
