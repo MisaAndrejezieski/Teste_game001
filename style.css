@@ -68,7 +68,7 @@ canvas {
 
 /* Compensação de escala específica para o pulo pequeno (muse-dash-buro003.gif) */
 #buroSprite.pulo-pequeno {
-  width: 400px;
+  width: 250px;
   height: 250px;
 }
 
@@ -89,8 +89,8 @@ canvas {
 
 /* Inimiga quando mata a principal (inim004.gif): EM GRANDE DESTAQUE */
 .inimigaSprite.vitoria {
-  width: 260px;
-  height: 260px;
+  width: 1000px;
+  height: 1000px;
 }
 
 #menuSprite {
