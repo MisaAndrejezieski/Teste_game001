@@ -17,7 +17,7 @@ const POS_X_INICIAL = 380;
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
-  buroPuloNormal: "images/muse-dash-buro003.gif",
+  buroPuloNormal: "images/muse-dash-buro008.gif",
   buroPuloEspecial: "images/muse-dash-buro003.001.gif",
   buroTropeco: "images/muse-dash-buro007.gif",
   buroMorte: "images/muse-dash-marija.gif",
