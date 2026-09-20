@@ -144,40 +144,39 @@ function gameLoop(tempoAtual) {
 
   } else if (estadoJogo === "JOGANDO" || estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
     
-    if (estadoJogo === "JOGANDO") {
-      tempoCorrida += dt;
+    // --- Física do Pulo continua rodando em ambos os modos ---
+    velY += GRAVIDADE * dt;
+    posY += velY * dt;
 
-      if (tempoTropeco > 0) tempoTropeco -= dt;
+    if (posY >= CHAO_Y) {
+      posY = CHAO_Y;
+      velY = 0;
+      noChao = true;
+    }
 
-      velY += GRAVIDADE * dt;
-      posY += velY * dt;
+    // --- O Cenário e o Spawner de Inimigas NUNCA param ---
+    tempoSpawn += dt;
+    if (tempoSpawn >= 1.8 + Math.random() * 1.2) {
+      tempoSpawn = 0;
+      inimigas.push(new Inimiga(LARGURA + 20, CHAO_Y));
+    }
 
-      if (posY >= CHAO_Y) {
-        posY = CHAO_Y;
-        velY = 0;
-        noChao = true;
+    const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
+
+    // Atualiza inimigas
+    for (let i = inimigas.length - 1; i >= 0; i--) {
+      let ini = inimigas[i];
+      ini.atualizar(dt, posX);
+
+      if (ini.x < -60) {
+        ini.destruir();
+        inimigas.splice(i, 1);
+        continue;
       }
 
-      tempoSpawn += dt;
-      if (tempoSpawn >= 1.8 + Math.random() * 1.2) {
-        tempoSpawn = 0;
-        inimigas.push(new Inimiga(LARGURA + 20, CHAO_Y));
-      }
-
-      const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
-
-      for (let i = inimigas.length - 1; i >= 0; i--) {
-        let ini = inimigas[i];
-        ini.atualizar(dt, posX);
-
-        if (ini.x < -60) {
-          ini.destruir();
-          inimigas.splice(i, 1);
-          continue;
-        }
-
-        if (!ini.esbarrou &&
-            rectJogador.x < ini.x + ini.largura &&
+      // Detecção de Colisão: APENAS quando está Vivo (JOGANDO)
+      if (estadoJogo === "JOGANDO" && !ini.esbarrou) {
+        if (rectJogador.x < ini.x + ini.largura &&
             rectJogador.x + rectJogador.largura > ini.x &&
             rectJogador.y < ini.y &&
             rectJogador.y + rectJogador.altura > ini.y - ini.altura) {
@@ -192,17 +191,25 @@ function gameLoop(tempoAtual) {
           }
         }
       }
+    }
+
+    if (estadoJogo === "JOGANDO") {
+      tempoCorrida += dt;
+      if (tempoTropeco > 0) tempoTropeco -= dt;
     } else if (estadoJogo === "MORTO") {
       tempoMorte += dt;
-      if (tempoMorte >= 10.0) {
+      // Contagem de 5 segundos correndo como fantasma
+      if (tempoMorte >= 5.0) {
         estadoJogo = "MENU_REINICIAR";
       }
     }
 
+    // --- Desenhar Chão ---
     ctx.fillStyle = "#b45078";
     ctx.fillRect(0, CHAO_Y, LARGURA, ALTURA - CHAO_Y);
 
-    if (estadoJogo !== "MORTO" && estadoJogo !== "MENU_REINICIAR") {
+    // --- Atualizar Animação da Buro ---
+    if (estadoJogo === "JOGANDO") {
       let srcAtual = CAMINHOS.buroAndando1;
       if (tempoTropeco > 0) {
         srcAtual = CAMINHOS.buroTropeco;
@@ -217,6 +224,7 @@ function gameLoop(tempoAtual) {
     buroSprite.style.left = `${posX}px`;
     buroSprite.style.top = `${posY}px`;
 
+    // --- Interface ---
     ctx.fillStyle = "#fff0fa";
     ctx.textAlign = "left";
     ctx.font = "18px Arial";
@@ -225,8 +233,8 @@ function gameLoop(tempoAtual) {
       ctx.fillText(`Esbarrões: ${esbarroesSofridos}/2`, 20, 30);
     } else if (estadoJogo === "MORTO") {
       ctx.textAlign = "center";
-      const restante = Math.max(0, Math.ceil(10 - tempoMorte));
-      ctx.fillText(`Aguarde... ${restante}s`, LARGURA / 2, 80);
+      const restante = Math.max(0, Math.ceil(5 - tempoMorte));
+      ctx.fillText(`FANTASMA! Reiniciando em... ${restante}s`, LARGURA / 2, 80);
     } else if (estadoJogo === "MENU_REINICIAR") {
       ctx.textAlign = "center";
       ctx.font = "bold 24px Arial";
