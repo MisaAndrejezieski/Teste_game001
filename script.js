@@ -5,10 +5,10 @@ const LARGURA = 960;
 const ALTURA = 540;
 const CHAO_Y = ALTURA - 80;
 
-// --- Configurações de Física ---
-const GRAVIDADE = 1200;
-const FORCA_PULO = -360; // Pulo mais baixo e controlado
-const VELOCIDADE_CENARIO = 450;
+// --- Configurações de Física e Velocidade ---
+const GRAVIDADE = 1000;         // Gravidade levemente menor para o pulo flutuar melhor
+const FORCA_PULO = -480;        // Pulo mais alto
+const VELOCIDADE_CENARIO = 280; // Jogo mais lento e cadenciado
 
 // --- Pré-carregamento das Imagens (GIFs) ---
 const imagens = {};
@@ -24,7 +24,6 @@ const caminhos = {
   inimigaImpacto: "images/inim003.gif"
 };
 
-// Carrega todas as imagens na memória
 Object.keys(caminhos).forEach(chave => {
   imagens[chave] = new Image();
   imagens[chave].src = caminhos[chave];
@@ -51,8 +50,9 @@ class Inimiga {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.largura = 25;
-    this.altura = 35;
+    // Hitbox aumentada proporcionalmente
+    this.largura = 35;
+    this.altura = 50;
     this.esbarrou = false;
   }
 
@@ -69,21 +69,20 @@ class Inimiga {
       img = imagens.inimigaPassou;
     }
 
-    // Inverte a imagem da inimiga no eixo X (look to left)
     ctx.save();
     ctx.translate(this.x + this.largura / 2, this.y);
-    ctx.scale(-1, 1); // Inverte horizontalmente
+    ctx.scale(-1, 1);
     
-    // Escala menor (aproximadamente 0.12x da original)
-    const larguraImg = 45;
-    const alturaImg = 45;
+    // Tamanho visual da inimiga aumentado (de 45px para 65px)
+    const larguraImg = 65;
+    const alturaImg = 65;
     
     ctx.drawImage(img, -larguraImg / 2, -alturaImg, larguraImg, alturaImg);
     ctx.restore();
   }
 }
 
-// --- Controles (Teclado e Clique) ---
+// --- Controles ---
 function acaoJogador() {
   if (estadoJogo === "TELA_INICIAL" || estadoJogo === "MENU_REINICIAR") {
     resetarJogo();
@@ -111,9 +110,9 @@ function resetarJogo() {
   estadoJogo = "JOGANDO";
 }
 
-// --- Loop Principal (rodando nativamente a 60 FPS no navegador) ---
+// --- Loop Principal ---
 function gameLoop(tempoAtual) {
-  const dt = (tempoAtual - ultimoTempo) / 1000;
+  const dt = Math.min((tempoAtual - ultimoTempo) / 1000, 0.1); // Trava dt máximo para evitar saltos
   ultimoTempo = tempoAtual;
 
   // Limpa a tela
@@ -121,8 +120,7 @@ function gameLoop(tempoAtual) {
   ctx.fillRect(0, 0, LARGURA, ALTURA);
 
   if (estadoJogo === "TELA_INICIAL") {
-    // Desenha GIF inicial centralizado
-    ctx.drawImage(imagens.buroInicial, LARGURA / 2 - 80, ALTURA / 2 - 100, 160, 160);
+    ctx.drawImage(imagens.buroInicial, LARGURA / 2 - 100, ALTURA / 2 - 120, 200, 200);
     
     ctx.fillStyle = "#fff0fa";
     ctx.font = "bold 24px Arial";
@@ -131,13 +129,12 @@ function gameLoop(tempoAtual) {
 
   } else if (estadoJogo === "JOGANDO" || estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
     
-    // Atualiza lógica no estado JOGANDO
     if (estadoJogo === "JOGANDO") {
       tempoCorrida += dt;
 
       if (tempoTropeco > 0) tempoTropeco -= dt;
 
-      // Gravidade
+      // Aplicar gravidade
       velY += GRAVIDADE * dt;
       posY += velY * dt;
 
@@ -147,27 +144,26 @@ function gameLoop(tempoAtual) {
         noChao = true;
       }
 
-      // Spawner de inimigas
+      // Spawner de inimigas (ajustado para a nova velocidade do jogo)
       tempoSpawn += dt;
-      if (tempoSpawn >= 1.3 + Math.random() * 1.0) {
+      if (tempoSpawn >= 1.8 + Math.random() * 1.2) {
         tempoSpawn = 0;
         inimigas.push(new Inimiga(LARGURA + 20, CHAO_Y));
       }
 
-      // Hitbox da jogadora
-      const rectJogador = { x: posX - 12, y: posY - 40, largura: 24, altura: 40 };
+      // Hitbox maior da jogadora (30px largura por 55px altura)
+      const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
 
-      // Atualiza Inimigas e Colisões
+      // Atualiza Inimigas e Colisão
       for (let i = inimigas.length - 1; i >= 0; i--) {
         let ini = inimigas[i];
         ini.atualizar(dt, posX);
 
-        if (ini.x < -50) {
+        if (ini.x < -60) {
           inimigas.splice(i, 1);
           continue;
         }
 
-        // Colisão AABB simples
         if (!ini.esbarrou &&
             rectJogador.x < ini.x + ini.largura &&
             rectJogador.x + rectJogador.largura > ini.x &&
@@ -211,9 +207,9 @@ function gameLoop(tempoAtual) {
       imgBuro = imagens.buroAndando2;
     }
 
-    // Desenha Jogadora (Proporção reduzida 0.3x)
-    const larguraBuro = 75;
-    const alturaBuro = 75;
+    // Tamanho visual da jogadora aumentado (de 75px para 105px)
+    const larguraBuro = 105;
+    const alturaBuro = 105;
     ctx.drawImage(imgBuro, posX - larguraBuro / 2, posY - alturaBuro, larguraBuro, alturaBuro);
 
     // --- Interface de Texto ---
@@ -237,5 +233,4 @@ function gameLoop(tempoAtual) {
   requestAnimationFrame(gameLoop);
 }
 
-// Inicia o jogo
 requestAnimationFrame(gameLoop);
