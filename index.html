@@ -33,23 +33,31 @@
       z-index: 10;
     }
 
-    /* Elementos visuais (GIFs) gerenciados via DOM */
     .sprite {
       position: absolute;
       pointer-events: none;
       z-index: 5;
     }
 
+    /* Tamanho padrão das animações normais da jogadora */
     #buroSprite {
       width: 105px;
-      height: auto;
+      height: 105px;
+      object-fit: contain;
       transform: translate(-50%, -100%);
+    }
+
+    /* Classe especial aplicada dinamicamente quando ela morre */
+    #buroSprite.morte {
+      width: 110px;
+      height: 110px;
     }
 
     .inimigaSprite {
       width: 65px;
-      height: auto;
-      transform: scaleX(-1) translate(50%, -100%); /* Inverte horizontalmente */
+      height: 65px;
+      object-fit: contain;
+      transform: scaleX(-1) translate(50%, -100%);
     }
 
     #menuSprite {
@@ -58,6 +66,8 @@
       top: 45%;
       transform: translate(-50%, -50%);
       width: 200px;
+      height: 200px;
+      object-fit: contain;
       z-index: 5;
     }
   </style>
@@ -65,16 +75,9 @@
 <body>
 
   <div id="gameArea">
-    <!-- Elemento para a tela inicial -->
     <img id="menuSprite" src="images/muse-dash-buro.gif" style="display: block;">
-    
-    <!-- Sprite da Personagem Principal -->
     <img id="buroSprite" class="sprite" src="images/muse-dash-buro001.gif" style="display: none;">
-    
-    <!-- Contentor para as Inimigas -->
     <div id="inimigasContainer"></div>
-
-    <!-- Canvas para chão, interface e colisões -->
     <canvas id="gameCanvas" width="960" height="540"></canvas>
   </div>
 
