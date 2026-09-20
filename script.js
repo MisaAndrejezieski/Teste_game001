@@ -1,60 +1,21 @@
 let gameObject = {
   meta: {
-    title: "Slot Anime Runner",
+    title: "Meu Jogo Anime",
     genre: "runner",
     version: "1.0.0"
   },
-  entities: {
-    buro: {
-      id: "buro",
-      role: "player",
-      layer: "foreground",
-      hasDensity: true,
-      extraLives: 3,
-      speed: 300,
-      jumpHeight: 150,
-      floatTime: 800,
-      scale: 0.9,
-      offsetY: -60,
-      positionX: 20,
-      gifs: {
-        idle: "images/muse-dash-buro_tela principal.gif",
-        run: "images/muse-dash-buro_anda_normal.gif",
-        jump: "images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif",
-        attack: "images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif",
-        bump: "images/muse-dash-buro_segunda_imagem_do_esbarrao.gif",
-        defeat: "images/muse-dash-marija_morte.gif"
-      }
-    },
-    inimiga_01: {
-      id: "inimiga_01",
-      role: "enemy",
-      layer: "ground",
-      hasDensity: true,
-      extraLives: 0,
-      speed: 200,
-      jumpHeight: 0,
-      floatTime: 0,
-      scale: 0.35,
-      offsetY: -150,
-      positionX: 75,
-      gifs: {
-        idle: "images/inimiga_caminha.gif",
-        run: "images/inimiga_caminha.gif",
-        jump: "",
-        attack: "images/inim004.gif",
-        bump: "images/inimiga_esbarra_na_principal.gif",
-        defeat: "images/inimiga_passa_da_principal.gif"
-      }
-    }
-  }
+  scene: {
+    backgroundImage: "",
+    backgroundMode: "cover" // 'cover', 'contain', 'repeat'
+  },
+  entities: {}
 };
 
-let selectedEntityId = "buro";
+let selectedEntityId = null;
 
 function init() {
   populateSelectors();
-  loadEntityPanelData();
+  renderScene();
   renderStage();
 }
 
@@ -62,6 +23,36 @@ function updateGameMeta(key, value) {
   gameObject.meta[key] = value;
 }
 
+// Configurações do Cenário (Background)
+function uploadBackground(file) {
+  if (!file) return;
+  const objectUrl = URL.createObjectURL(file);
+  gameObject.scene.backgroundImage = objectUrl;
+  renderScene();
+}
+
+function updateBackgroundMode(mode) {
+  gameObject.scene.backgroundMode = mode;
+  renderScene();
+}
+
+function removeBackground() {
+  gameObject.scene.backgroundImage = "";
+  renderScene();
+}
+
+function renderScene() {
+  const bgLayer = document.getElementById('background-layer');
+  if (gameObject.scene.backgroundImage) {
+    bgLayer.style.backgroundImage = `url('${gameObject.scene.backgroundImage}')`;
+    bgLayer.style.backgroundRepeat = gameObject.scene.backgroundMode === 'repeat' ? 'repeat' : 'no-repeat';
+    bgLayer.style.backgroundSize = gameObject.scene.backgroundMode === 'repeat' ? 'auto' : gameObject.scene.backgroundMode;
+  } else {
+    bgLayer.style.backgroundImage = 'none';
+  }
+}
+
+// Renderização dos Personagens
 function renderStage() {
   const container = document.getElementById('entities-container');
   container.innerHTML = '';
@@ -86,19 +77,53 @@ function renderStage() {
 function populateSelectors() {
   document.getElementById('game-title').value = gameObject.meta.title;
   document.getElementById('game-genre').value = gameObject.meta.genre;
+  document.getElementById('bg-mode').value = gameObject.scene.backgroundMode || 'cover';
 
   const selector = document.getElementById('entity-selector');
   selector.innerHTML = '';
-  Object.keys(gameObject.entities).forEach(id => {
+
+  const entityKeys = Object.keys(gameObject.entities);
+
+  if (entityKeys.length === 0) {
+    selectedEntityId = null;
     const opt = document.createElement('option');
-    opt.value = id;
-    opt.innerText = `${id} (${gameObject.entities[id].role})`;
+    opt.innerText = '-- Nenhum Personagem --';
     selector.appendChild(opt);
-  });
-  selector.value = selectedEntityId;
+    disableEntityPanels(true);
+  } else {
+    disableEntityPanels(false);
+    if (!selectedEntityId || !gameObject.entities[selectedEntityId]) {
+      selectedEntityId = entityKeys[0];
+    }
+    entityKeys.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.innerText = `${id} (${gameObject.entities[id].role})`;
+      selector.appendChild(opt);
+    });
+    selector.value = selectedEntityId;
+    loadEntityPanelData();
+  }
+}
+
+function disableEntityPanels(disabled) {
+  const propGroup = document.getElementById('group-properties');
+  const gifGroup = document.getElementById('group-gifs');
+  const deleteBtn = document.getElementById('btn-delete-entity');
+
+  if (disabled) {
+    propGroup.classList.add('disabled');
+    gifGroup.classList.add('disabled');
+    deleteBtn.style.display = 'none';
+  } else {
+    propGroup.classList.remove('disabled');
+    gifGroup.classList.remove('disabled');
+    deleteBtn.style.display = 'block';
+  }
 }
 
 function selectEntity(id) {
+  if (!gameObject.entities[id]) return;
   selectedEntityId = id;
   loadEntityPanelData();
 }
@@ -129,45 +154,39 @@ function createEntity() {
 
   gameObject.entities[rawId] = {
     id: rawId,
-    role: "enemy",
-    layer: "ground",
+    role: "player",
+    layer: "foreground",
     hasDensity: true,
-    extraLives: 1,
-    speed: 150,
-    jumpHeight: 0,
+    extraLives: 3,
+    speed: 200,
+    jumpHeight: 150,
     floatTime: 0,
     scale: 1,
     offsetY: 0,
-    positionX: 70,
+    positionX: 20,
     gifs: { idle: "", run: "", jump: "", attack: "", bump: "", defeat: "" }
   };
 
   input.value = '';
   selectedEntityId = rawId;
   populateSelectors();
-  loadEntityPanelData();
   renderStage();
 }
 
-// Nova Função: Excluir a Entidade Selecionada
+// Permite excluir TODOS os personagens sem limitação
 function deleteEntity() {
-  const entityKeys = Object.keys(gameObject.entities);
-  
-  if (entityKeys.length <= 1) {
-    alert('Você precisa ter pelo menos um personagem/entidade no jogo!');
-    return;
-  }
+  if (!selectedEntityId || !gameObject.entities[selectedEntityId]) return;
 
-  if (confirm(`Tem certeza que deseja excluir '${selectedEntityId}'?`)) {
+  if (confirm(`Excluir o personagem '${selectedEntityId}'?`)) {
     delete gameObject.entities[selectedEntityId];
-    selectedEntityId = Object.keys(gameObject.entities)[0];
+    selectedEntityId = null;
     populateSelectors();
-    loadEntityPanelData();
     renderStage();
   }
 }
 
 function updateEntityProp(prop, value) {
+  if (!selectedEntityId) return;
   const ent = gameObject.entities[selectedEntityId];
   if (ent) {
     ent[prop] = value;
@@ -176,7 +195,7 @@ function updateEntityProp(prop, value) {
 }
 
 function uploadEntityGif(action, file) {
-  if (!file) return;
+  if (!file || !selectedEntityId) return;
   const ent = gameObject.entities[selectedEntityId];
   if (ent) {
     const objectUrl = URL.createObjectURL(file);
@@ -200,11 +219,11 @@ function loadGameFile(event) {
   fileReader.onload = function(e) {
     try {
       const loadedData = JSON.parse(e.target.result);
-      if (loadedData.meta && loadedData.entities) {
+      if (loadedData.meta) {
         gameObject = loadedData;
-        selectedEntityId = Object.keys(gameObject.entities)[0] || '';
+        selectedEntityId = null;
         populateSelectors();
-        loadEntityPanelData();
+        renderScene();
         renderStage();
         alert('Projeto carregado com sucesso!');
       } else {
