@@ -13,7 +13,6 @@ body {
   overflow: hidden;
 }
 
-/* Palco de Exibição do Jogo */
 #game-stage {
   flex: 1;
   position: relative;
@@ -56,12 +55,10 @@ body {
   transform-origin: bottom center;
 }
 
-/* Camadas de Renderização (Z-Index) */
 .layer-background { z-index: 2; }
 .layer-ground { z-index: 11; }
 .layer-foreground { z-index: 20; }
 
-/* Painel Lateral */
 #control-panel {
   width: 420px;
   background: #1e1e24;
@@ -102,9 +99,24 @@ h2 {
   gap: 8px;
 }
 
-.field label {
-  flex: 1;
+.file-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  gap: 4px;
 }
+
+.file-field input[type="file"] {
+  background: #121214;
+  border: 1px solid #383845;
+  color: #fff;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.field label { flex: 1; }
 
 .field input[type="text"],
 .field input[type="number"],
@@ -139,10 +151,7 @@ h2 {
   transition: filter 0.2s;
 }
 
-.btn-action:hover {
-  filter: brightness(1.2);
-}
-
+.btn-action:hover { filter: brightness(1.2); }
 .btn-blue { background: #00b0ff; }
 .btn-green { background: #4caf50; }
 .btn-orange { background: #ff9800; }
