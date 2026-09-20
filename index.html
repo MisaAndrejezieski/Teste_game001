@@ -20,7 +20,7 @@
       overflow: hidden;
     }
 
-    /* Palco de Visualização do Jogo */
+    /* Palco do Jogo */
     #game-stage {
       flex: 1;
       position: relative;
@@ -31,7 +31,6 @@
       overflow: hidden;
     }
 
-    /* Linha do Chão para referência visual */
     #ground-line {
       position: absolute;
       bottom: 80px;
@@ -43,7 +42,6 @@
       z-index: 1;
     }
 
-    /* Contêineres de Personagens */
     .sprite-container {
       position: absolute;
       bottom: 80px;
@@ -67,7 +65,7 @@
       transform-origin: bottom center;
     }
 
-    /* Painel de Controles Lateral */
+    /* Painel de Controles */
     #control-panel {
       width: 380px;
       background: #1e1e24;
@@ -153,7 +151,6 @@
       background: #5c6bc0;
     }
 
-    /* Botão de Exportação */
     #export-btn {
       background: #4caf50;
       padding: 12px;
@@ -168,26 +165,21 @@
 </head>
 <body>
 
-  <!-- Palco do Jogo -->
   <div id="game-stage">
     <div id="ground-line"></div>
 
-    <!-- Personagem Principal (Buro) -->
     <div id="buro-container" class="sprite-container">
       <img id="buro-img" src="images/muse-dash-buro_anda_normal.gif" alt="Buro" />
     </div>
 
-    <!-- Inimiga -->
     <div id="enemy-container" class="sprite-container">
       <img id="enemy-img" src="images/inimiga_caminha.gif" alt="Inimiga" />
     </div>
   </div>
 
-  <!-- Painel de Ajustes -->
   <div id="control-panel">
     <h2>Ajustes de Proporção & Tempos</h2>
 
-    <!-- Seleção de Ações da Buro -->
     <div class="control-group">
       <h3>Testar Buro</h3>
       <div class="btn-grid">
@@ -202,17 +194,16 @@
       </div>
     </div>
 
-    <!-- Seleção de Ações da Inimiga -->
     <div class="control-group">
       <h3>Testar Inimiga</h3>
       <div class="btn-grid">
         <button onclick="testEnemy('walk')">Caminhada</button>
         <button onclick="testEnemy('bump')">Esbarrão</button>
         <button onclick="testEnemy('pass')">Passou Direto</button>
+        <button onclick="testEnemy('kill')">Ataque / Vitória (inim004)</button>
       </div>
     </div>
 
-    <!-- Tempos de Transição -->
     <div class="control-group">
       <h3>Tempos de Transição (ms)</h3>
       <div class="field">
@@ -232,7 +223,6 @@
       </div>
     </div>
 
-    <!-- Ajuste do Sprite Selecionado -->
     <div class="control-group">
       <h3>Ajuste do Sprite Ativo</h3>
       <div id="active-sprite-name" class="active-info">Editando: muse-dash-buro_anda_normal.gif</div>
@@ -252,7 +242,6 @@
   </div>
 
   <script>
-    // Mapeamento dos Nomes EXATOS da sua pasta images/
     const ASSETS = {
       buro: {
         menu: 'images/muse-dash-buro_tela principal.gif',
@@ -270,11 +259,11 @@
       enemy: {
         walk: 'images/inimiga_caminha.gif',
         bump: 'images/inimiga_esbarra_na_principal.gif',
-        pass: 'images/inimiga_passa_da_principal.gif'
+        pass: 'images/inimiga_passa_da_principal.gif',
+        kill: 'images/inim004.gif'
       }
     };
 
-    // Configurações Globais de Tamanho e Posição
     const config = {
       timings: {
         jumpNormal: 400,
@@ -295,7 +284,8 @@
         'images/muse-dash-marija_morte.gif': { scale: 1, offsetY: 0 },
         'images/inimiga_caminha.gif': { scale: 1, offsetY: 0 },
         'images/inimiga_esbarra_na_principal.gif': { scale: 1, offsetY: 0 },
-        'images/inimiga_passa_da_principal.gif': { scale: 1, offsetY: 0 }
+        'images/inimiga_passa_da_principal.gif': { scale: 1, offsetY: 0 },
+        'images/inim004.gif': { scale: 1, offsetY: 0 }
       }
     };
 
@@ -350,10 +340,8 @@
 
       if (action === 'run_normal') {
         selectSpriteToEdit(ASSETS.buro.runNormal, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
       } else if (action === 'run_10s') {
         selectSpriteToEdit(ASSETS.buro.run10s, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
       } else if (action === 'jump_normal') {
         selectSpriteToEdit(ASSETS.buro.jumpNormal1, buroImg);
         applySpriteStyle(buroImg, activeSprite);
@@ -361,6 +349,7 @@
           selectSpriteToEdit(ASSETS.buro.jumpNormal2, buroImg);
           applySpriteStyle(buroImg, activeSprite);
         }, config.timings.jumpNormal);
+        return;
       } else if (action === 'jump_special') {
         selectSpriteToEdit(ASSETS.buro.jumpSpecial1, buroImg);
         applySpriteStyle(buroImg, activeSprite);
@@ -368,6 +357,7 @@
           selectSpriteToEdit(ASSETS.buro.jumpSpecial2, buroImg);
           applySpriteStyle(buroImg, activeSprite);
         }, config.timings.jumpSpecial);
+        return;
       } else if (action === 'bump') {
         selectSpriteToEdit(ASSETS.buro.bump1, buroImg);
         applySpriteStyle(buroImg, activeSprite);
@@ -375,16 +365,15 @@
           selectSpriteToEdit(ASSETS.buro.bump2, buroImg);
           applySpriteStyle(buroImg, activeSprite);
         }, config.timings.bump);
+        return;
       } else if (action === 'victory') {
         selectSpriteToEdit(ASSETS.buro.victory, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
       } else if (action === 'defeat') {
         selectSpriteToEdit(ASSETS.buro.defeat, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
       } else if (action === 'menu') {
         selectSpriteToEdit(ASSETS.buro.menu, buroImg);
-        applySpriteStyle(buroImg, activeSprite);
       }
+      applySpriteStyle(buroImg, activeSprite);
     }
 
     function testEnemy(action) {
@@ -394,6 +383,8 @@
         selectSpriteToEdit(ASSETS.enemy.bump, enemyImg);
       } else if (action === 'pass') {
         selectSpriteToEdit(ASSETS.enemy.pass, enemyImg);
+      } else if (action === 'kill') {
+        selectSpriteToEdit(ASSETS.enemy.kill, enemyImg);
       }
       applySpriteStyle(enemyImg, activeSprite);
     }
@@ -401,10 +392,9 @@
     function exportConfig() {
       const output = JSON.stringify(config, null, 2);
       navigator.clipboard.writeText(output);
-      alert('Configurações salvas e copiadas para a área de transferência!');
+      alert('Configurações salvas e copiadas!');
     }
 
-    // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
       applySpriteStyle(buroImg, ASSETS.buro.runNormal);
       applySpriteStyle(enemyImg, ASSETS.enemy.walk);
