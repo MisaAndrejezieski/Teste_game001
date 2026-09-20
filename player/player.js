@@ -83,7 +83,7 @@ const RUNTIME = {
         img.src = this.resolveAsset(initial);
       }
 
-      const scale = ent.scale || 1;
+      const scale = ent.actionSettings.idle.scale;
       img.style.transform = `scale(${scale})`;
       el.appendChild(img);
       c.appendChild(el);
@@ -94,6 +94,8 @@ const RUNTIME = {
         y: 0, vx: 0, vy: 0,
         onGround: true,
         action: 'idle',
+        actionScale: ent.actionSettings.idle.scale,
+        actionOffsetY: ent.actionSettings.idle.offsetY,
         hitboxWidth: 60,
         hitboxHeight: 60,
         baseOffsetY: ent.offsetY || 0
@@ -198,7 +200,7 @@ const RUNTIME = {
     const img = document.createElement('img');
     const src = ent.gifs.run || ent.gifs.idle || '';
     if (src) img.src = this.resolveAsset(src);
-    const scale = ent.scale || 1;
+    const scale = ent.actionSettings.run.scale;
     img.style.transform = `scale(${scale})`;
     el.appendChild(img);
     container.appendChild(el);
@@ -220,8 +222,8 @@ const RUNTIME = {
 
   collide(a, o) {
     const ax = a.x, ay = a.y + a.baseOffsetY;
-    const aw = (a.hitboxWidth || 60) * (a.data.scale||1);
-    const ah = (a.hitboxHeight || 60) * (a.data.scale||1);
+    const aw = (a.hitboxWidth || 60) * (a.actionScale || 1);
+    const ah = (a.hitboxHeight || 60) * (a.actionScale || 1);
     const ox = o.x - o.w/2, oy = o.y + (o.data.offsetY||0);
     const pad = 12;
     return (ax - aw/2 + pad < ox + o.w - pad) &&
@@ -254,7 +256,7 @@ const RUNTIME = {
 
     Object.values(this.actors).forEach(a => {
       a.el.style.left = `${a.x}px`;
-      a.el.style.bottom = `${this.GROUND_Y + a.y + (a.baseOffsetY||0)}px`;
+      a.el.style.bottom = `${this.GROUND_Y + a.y + a.actionOffsetY}px`;
     });
 
     this.obstacles.forEach(o => {
@@ -275,7 +277,11 @@ const RUNTIME = {
     if (actor.action === action) return;
     const src = actor.data.gifs[action] || actor.data.gifs.idle || actor.data.gifs.run || '';
     if (!src) return;
+    const settings = actor.data.actionSettings[action] || actor.data.actionSettings.idle;
     actor.img.src = this.resolveAsset(src);
+    actor.actionScale = settings.scale;
+    actor.actionOffsetY = settings.offsetY;
+    actor.img.style.transform = `scale(${actor.actionScale})`;
     actor.action = action;
   },
 

@@ -72,6 +72,11 @@ function bindEvents() {
   // --- Entidade ---
   document.getElementById('entity-selector').addEventListener('change', e =>
     selectEntity(e.target.value));
+  document.getElementById('action-selector').addEventListener('change', e => {
+    previewAction = e.target.value;
+    loadActionSettings();
+    renderStage();
+  });
 
   // --- Propriedades ---
   document.getElementById('prop-role').addEventListener('change', e => updateProp('role', e.target.value));
@@ -80,8 +85,8 @@ function bindEvents() {
   document.getElementById('prop-lives').addEventListener('change', e => updateProp('extraLives', parseInt(e.target.value) || 0));
   document.getElementById('prop-speed').addEventListener('change', e => updateProp('speed', parseInt(e.target.value) || 0));
   document.getElementById('prop-jump').addEventListener('change', e => updateProp('jumpHeight', parseInt(e.target.value) || 0));
-  document.getElementById('prop-scale').addEventListener('change', e => updateProp('scale', parseFloat(e.target.value) || 1));
-  document.getElementById('prop-offset-y').addEventListener('change', e => updateProp('offsetY', parseInt(e.target.value) || 0));
+  document.getElementById('prop-scale').addEventListener('change', e => updateActionProp('scale', parseFloat(e.target.value) || 1));
+  document.getElementById('prop-offset-y').addEventListener('change', e => updateActionProp('offsetY', parseInt(e.target.value) || 0));
   document.getElementById('prop-position-x').addEventListener('change', e => updateProp('positionX', parseInt(e.target.value) || 0));
 
   // --- GIFs por ação ---
@@ -92,6 +97,8 @@ function bindEvents() {
       if (!ent) return;
       ent.gifs[action] = e.target.value ? `images/${e.target.value}` : "";
       previewAction = action;
+      document.getElementById('action-selector').value = action;
+      loadActionSettings();
       renderStage();
       saveDebounced();
     });
@@ -307,6 +314,14 @@ function selectEntity(id) {
   loadEntityPanel();
 }
 
+function loadActionSettings() {
+  const e = game.entities[selectedEntityId];
+  if (!e) return;
+  const settings = e.actionSettings[previewAction];
+  document.getElementById('prop-scale').value = settings.scale;
+  document.getElementById('prop-offset-y').value = settings.offsetY;
+}
+
 function loadEntityPanel() {
   const e = game.entities[selectedEntityId];
   if (!e) return;
@@ -317,8 +332,8 @@ function loadEntityPanel() {
   document.getElementById('prop-lives').value = e.extraLives;
   document.getElementById('prop-speed').value = e.speed;
   document.getElementById('prop-jump').value = e.jumpHeight;
-  document.getElementById('prop-scale').value = e.scale;
-  document.getElementById('prop-offset-y').value = e.offsetY;
+  document.getElementById('action-selector').value = previewAction;
+  loadActionSettings();
   document.getElementById('prop-position-x').value = e.positionX;
 
   ['idle','run','jump','bump','defeat'].forEach(a => {
@@ -362,6 +377,15 @@ function updateProp(p, v) {
   saveDebounced();
 }
 
+function updateActionProp(p, v) {
+  if (!selectedEntityId) return;
+  const e = game.entities[selectedEntityId];
+  if (!e) return;
+  e.actionSettings[previewAction][p] = v;
+  renderStage();
+  saveDebounced();
+}
+
 /* =========================================================
    RENDER DO PALCO
    ========================================================= */
@@ -385,8 +409,9 @@ function renderStage() {
       const img = document.createElement('img');
       img.src = resolveAsset(src);
 
-      const scale = e.scale || 1;
-      const offY = e.offsetY || 0;
+      const settings = e.actionSettings[previewAction];
+      const scale = settings.scale || 1;
+      const offY = settings.offsetY || 0;
       img.style.transform = `scale(${scale}) translateY(${-offY}px)`;
 
       el.appendChild(img);

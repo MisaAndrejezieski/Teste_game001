@@ -13,6 +13,13 @@ const DEFAULT_ENTITY = () => ({
   offsetY: 0,
   positionX: 20,
   gifs: { idle: "", run: "", jump: "", bump: "", defeat: "" }
+  ,actionSettings: {
+    idle: { scale: 1, offsetY: 0 },
+    run: { scale: 1, offsetY: 0 },
+    jump: { scale: 1, offsetY: 0 },
+    bump: { scale: 1, offsetY: 0 },
+    defeat: { scale: 1, offsetY: 0 }
+  }
 });
 
 const DEFAULT_GAME = () => ({
@@ -85,6 +92,15 @@ function numberOrDefault(v, fallback, min, max) {
 function normalizeEntity(id, raw) {
   const b = DEFAULT_ENTITY();
   const e = isObject(raw) ? raw : {};
+  const actionSettings = {};
+  Object.keys(b.actionSettings).forEach(action => {
+    const settings = isObject(e.actionSettings && e.actionSettings[action])
+      ? e.actionSettings[action] : {};
+    actionSettings[action] = {
+      scale: numberOrDefault(settings.scale, e.scale, 0.1, 5),
+      offsetY: numberOrDefault(settings.offsetY, e.offsetY, -300, 300)
+    };
+  });
   return {
     id: id,
     role: ['player','enemy','prop'].includes(e.role) ? e.role : b.role,
@@ -103,7 +119,8 @@ function normalizeEntity(id, raw) {
       jump:   (e.gifs && isString(e.gifs.jump))   ? e.gifs.jump   : "",
       bump:   (e.gifs && isString(e.gifs.bump))   ? e.gifs.bump   : "",
       defeat: (e.gifs && isString(e.gifs.defeat)) ? e.gifs.defeat : ""
-    }
+    },
+    actionSettings
   };
 }
 

@@ -123,9 +123,9 @@
         <input type="number" id="prop-speed" min="0" max="1000" /></div>
       <div class="field"><label>Força Pulo (px):</label>
         <input type="number" id="prop-jump" min="0" max="300" /></div>
-      <div class="field"><label>Escala:</label>
+      <div class="field"><label>Escala da ação:</label>
         <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" /></div>
-      <div class="field"><label>Ajuste Chão (Y):</label>
+      <div class="field"><label>Ajuste da ação (Y):</label>
         <input type="number" id="prop-offset-y" min="-300" max="300" /></div>
       <div class="field"><label>Posição X (%):</label>
         <input type="number" id="prop-position-x" min="0" max="100" /></div>
@@ -134,6 +134,16 @@
     <!-- 5. GIFs -->
     <div class="control-group" id="group-gifs">
       <h3>5. GIFs de Animação</h3>
+      <div class="field">
+        <label>Ação em edição:</label>
+        <select id="action-selector">
+          <option value="idle">Parado</option>
+          <option value="run">Correr</option>
+          <option value="jump">Pular</option>
+          <option value="bump">Dano</option>
+          <option value="defeat">Morte</option>
+        </select>
+      </div>
       <div class="field"><label>Parado:</label><select id="gif-idle"></select></div>
       <div class="field"><label>Correr:</label><select id="gif-run"></select></div>
       <div class="field"><label>Pular:</label><select id="gif-jump"></select></div>
