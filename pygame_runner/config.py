@@ -15,7 +15,11 @@ ASSET_DIR = ROOT / "images"
 WIDTH = 1100
 HEIGHT = 620
 FPS = 60
-GROUND_Y = 500
+
+# Linha do chão (pés dos personagens).
+# A estrada marrom do cenario004 fica em torno de y=560.
+# Ajuste fino: aumente para descer, diminua para subir.
+GROUND_Y = 560
 
 
 # =============================================================
@@ -35,9 +39,13 @@ JUMP_SPEED = 900
 # =============================================================
 # ESCALA DOS PERSONAGENS
 # =============================================================
+# 1.0 = tamanho original do GIF
+# < 1.0 = menor, > 1.0 = maior
+#
+# Ajuste fino conforme a proporção desejada em relação ao cenário.
 
-NORA_SCALE = 0.15
-ENEMY_SCALE = 0.12
+NORA_SCALE = 0.20
+ENEMY_SCALE = 0.16
 
 
 # =============================================================
@@ -58,7 +66,7 @@ NORA_ACTIONS = {
 # =============================================================
 
 ENEMY_ACTIONS = {
-    "run":  "inimiga_caminha.gif",
+    "run":  "inim004.gif",
     "bump": "inimiga_esbarra_na_principal.gif",
 }
 
@@ -66,6 +74,5 @@ ENEMY_ACTIONS = {
 # =============================================================
 # CENÁRIO
 # =============================================================
-# Cenário único rolando horizontalmente, em loop infinito.
 
 BACKGROUND = "cenario004.jpg"
