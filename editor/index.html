@@ -20,21 +20,7 @@
       <div class="parallax-layer" data-layer="2"></div>
     </div>
 
-    <!-- Fundo estático (modo fighting) -->
     <div id="background-layer"></div>
-
-    <!-- Barras de HP (modo fighting) -->
-    <div id="fighting-ui" class="hidden">
-      <div class="hp-bar-container player1">
-        <span id="p1-name">P1</span>
-        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
-      </div>
-      <div class="vs-badge">VS</div>
-      <div class="hp-bar-container player2">
-        <span id="p2-name">P2</span>
-        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
-      </div>
-    </div>
 
     <div id="ground-line"></div>
     <div id="entities-container"></div>
@@ -58,13 +44,6 @@
         <label>Nome do Jogo:</label>
         <input type="text" id="game-title" />
       </div>
-      <div class="field">
-        <label>Estilo de Jogo:</label>
-        <select id="game-genre">
-          <option value="runner">Runner</option>
-          <option value="fighting">Luta 2D</option>
-        </select>
-      </div>
     </div>
 
     <!-- 2. CENÁRIO -->
@@ -72,20 +51,7 @@
       <h3>2. Cenário</h3>
 
       <div class="field">
-        <label>Modo de Exibição:</label>
-        <select id="bg-mode">
-          <option value="cover">Cover</option>
-          <option value="contain">Contain</option>
-          <option value="repeat">Repeat</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Imagem Estática (fighting):</label>
-        <select id="bg-select"></select>
-      </div>
-
-      <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Remover Fundo</button>
+      <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Limpar cenário</button>
 
       <!-- Camadas de paralaxe (modo runner) -->
       <div id="layers-block">
@@ -169,7 +135,6 @@
       <div class="field"><label>Parado:</label><select id="gif-idle"></select></div>
       <div class="field"><label>Correr:</label><select id="gif-run"></select></div>
       <div class="field"><label>Pular:</label><select id="gif-jump"></select></div>
-      <div class="field"><label>Ataque:</label><select id="gif-attack"></select></div>
       <div class="field"><label>Dano:</label><select id="gif-bump"></select></div>
       <div class="field"><label>Morte:</label><select id="gif-defeat"></select></div>
     </div>
@@ -183,16 +148,7 @@
         <input type="number" id="rule-runner-spawn" min="200" max="10000" step="100" /></div>
     </div>
 
-    <!-- 7. REGRAS FIGHTING -->
-    <div class="control-group">
-      <h3>7. Regras — Fighting</h3>
-      <div class="field"><label>HP Máximo:</label>
-        <input type="number" id="rule-fight-hp" min="10" max="9999" /></div>
-      <div class="field"><label>Dano por Golpe:</label>
-        <input type="number" id="rule-fight-dmg" min="1" max="9999" /></div>
-    </div>
-
-    <!-- 8. PROJETO -->
+    <!-- 7. PROJETO -->
     <div class="control-group">
       <h3>8. Projeto</h3>
       <button class="btn-action btn-green" onclick="saveProjectAs()">💾 Salvar Versão</button>
@@ -202,7 +158,7 @@
       <button class="btn-action btn-red" onclick="resetProject()">🔥 Novo Projeto</button>
     </div>
 
-    <!-- 9. VERSÕES -->
+    <!-- 8. VERSÕES -->
     <div class="control-group">
       <h3>9. Versões Salvas</h3>
       <div class="field"><label>Carregar:</label><select id="project-list"></select></div>

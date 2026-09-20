@@ -44,25 +44,7 @@ function bindEvents() {
     game.meta.title = e.target.value;
     saveDebounced();
   });
-  document.getElementById('game-genre').addEventListener('change', e => {
-    game.meta.genre = e.target.value;
-    refreshAll();   // muda layout: mostra/esconde camadas de paralaxe
-    saveDebounced();
-  });
-
-  // --- Fundo estático (fighting) ---
-  document.getElementById('bg-select').addEventListener('change', e => {
-    game.scene.backgroundImage = e.target.value ? `images/${e.target.value}` : "";
-    renderScene();
-    saveDebounced();
-  });
-  document.getElementById('bg-mode').addEventListener('change', e => {
-    game.scene.backgroundMode = e.target.value;
-    renderScene();
-    saveDebounced();
-  });
-
-  // --- Camadas de paralaxe (runner) ---
+  // --- Camadas de paralaxe ---
   [0, 1, 2].forEach(i => {
     document.getElementById(`layer-${i}-img`).addEventListener('change', e => {
       game.scene.layers[i].image = e.target.value ? `images/${e.target.value}` : "";
@@ -99,7 +81,7 @@ function bindEvents() {
   document.getElementById('prop-position-x').addEventListener('change', e => updateProp('positionX', parseInt(e.target.value) || 0));
 
   // --- GIFs por ação ---
-  ['idle','run','jump','attack','bump','defeat'].forEach(action => {
+  ['idle','run','jump','bump','defeat'].forEach(action => {
     document.getElementById(`gif-${action}`).addEventListener('change', e => {
       if (!selectedEntityId) return;
       const ent = game.entities[selectedEntityId];
@@ -119,15 +101,6 @@ function bindEvents() {
     game.rules.runner.spawnRate = parseInt(e.target.value) || 0;
     saveDebounced();
   });
-  document.getElementById('rule-fight-hp').addEventListener('change', e => {
-    game.rules.fighting.maxHp = parseInt(e.target.value) || 0;
-    saveDebounced();
-  });
-  document.getElementById('rule-fight-dmg').addEventListener('change', e => {
-    game.rules.fighting.damage = parseInt(e.target.value) || 0;
-    saveDebounced();
-  });
-
   // --- Import ---
   document.getElementById('import-file').addEventListener('change', async e => {
     const f = e.target.files[0];
@@ -187,17 +160,13 @@ function fillManifestSelect(sel) {
 
 function refreshAll() {
   // 1) Preenche TODOS os selects com o manifest
-  fillManifestSelect(document.getElementById('bg-select'));
   [0, 1, 2].forEach(i =>
     fillManifestSelect(document.getElementById(`layer-${i}-img`)));
-  ['idle','run','jump','attack','bump','defeat'].forEach(a =>
+  ['idle','run','jump','bump','defeat'].forEach(a =>
     fillManifestSelect(document.getElementById(`gif-${a}`)));
 
   // 2) Sincroniza campos com o gameObject atual
   document.getElementById('game-title').value = game.meta.title;
-  document.getElementById('game-genre').value = game.meta.genre;
-  document.getElementById('bg-mode').value = game.scene.backgroundMode;
-  document.getElementById('bg-select').value = stripPrefix(game.scene.backgroundImage);
 
   [0, 1, 2].forEach(i => {
     document.getElementById(`layer-${i}-img`).value = stripPrefix(game.scene.layers[i].image);
@@ -206,16 +175,11 @@ function refreshAll() {
 
   document.getElementById('rule-runner-speed').value = game.rules.runner.worldSpeed;
   document.getElementById('rule-runner-spawn').value = game.rules.runner.spawnRate;
-  document.getElementById('rule-fight-hp').value = game.rules.fighting.maxHp;
-  document.getElementById('rule-fight-dmg').value = game.rules.fighting.damage;
 
-  // 3) Mostra/esconde bloco de camadas conforme o gênero
-  document.getElementById('layers-block').style.display =
-    game.meta.genre === 'runner' ? 'block' : 'none';
+  document.getElementById('layers-block').style.display = 'block';
 
-  // 4) Popula entidades e renderiza palco
+  // 3) Popula entidades e renderiza palco
   populateEntitySelector();
-  applyGenreLayout();
   renderScene();
   renderStage();
   refreshProjectList();
@@ -227,9 +191,6 @@ function refreshAll() {
 
 // Limpa o fundo estático E todas as camadas de paralaxe
 function removeBackground() {
-  game.scene.backgroundImage = '';
-  document.getElementById('bg-select').value = '';
-
   [0, 1, 2].forEach(i => {
     game.scene.layers[i].image = '';
     const sel = document.getElementById(`layer-${i}-img`);
@@ -259,35 +220,18 @@ function removeAllLayers() {
   [0, 1, 2].forEach(i => removeLayer(i));
 }
 
-// Aplica o cenário no palco conforme gênero
+// Aplica o cenário do runner no palco
 function renderScene() {
   const bg = document.getElementById('background-layer');
-  const genre = game.meta.genre;
-
-  if (genre === 'runner') {
-    bg.style.backgroundImage = 'none';
-    [0, 1, 2].forEach(i => {
-      const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
-      const l = game.scene.layers[i];
-      el.style.backgroundImage = l.image ? `url('${resolveAsset(l.image)}')` : 'none';
-      el.style.backgroundRepeat = 'repeat-x';
-      el.style.backgroundSize = 'auto 100%';
-      el.style.backgroundPositionX = '0px';
-    });
-  } else {
-    [0, 1, 2].forEach(i => {
-      document.querySelector(`.parallax-layer[data-layer="${i}"]`).style.backgroundImage = 'none';
-    });
-    if (game.scene.backgroundImage) {
-      bg.style.backgroundImage = `url('${resolveAsset(game.scene.backgroundImage)}')`;
-      bg.style.backgroundRepeat =
-        game.scene.backgroundMode === 'repeat' ? 'repeat' : 'no-repeat';
-      bg.style.backgroundSize =
-        game.scene.backgroundMode === 'repeat' ? 'auto' : game.scene.backgroundMode;
-    } else {
-      bg.style.backgroundImage = 'none';
-    }
-  }
+  bg.style.backgroundImage = 'none';
+  [0, 1, 2].forEach(i => {
+    const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
+    const l = game.scene.layers[i];
+    el.style.backgroundImage = l.image ? `url('${resolveAsset(l.image)}')` : 'none';
+    el.style.backgroundRepeat = 'repeat-x';
+    el.style.backgroundSize = 'auto 100%';
+    el.style.backgroundPositionX = '0px';
+  });
 }
 
 /* =========================================================
@@ -350,7 +294,7 @@ function loadEntityPanel() {
   document.getElementById('prop-offset-y').value = e.offsetY;
   document.getElementById('prop-position-x').value = e.positionX;
 
-  ['idle','run','jump','attack','bump','defeat'].forEach(a => {
+  ['idle','run','jump','bump','defeat'].forEach(a => {
     document.getElementById(`gif-${a}`).value = stripPrefix(e.gifs[a]);
   });
 }
@@ -400,23 +344,13 @@ function renderStage() {
   c.innerHTML = '';
 
   const keys = Object.keys(game.entities);
-  const genre = game.meta.genre;
-  let fightingIndex = 0;
 
-  keys.forEach((id, index) => {
+  keys.forEach(id => {
     const e = game.entities[id];
     const el = document.createElement('div');
     el.className = `sprite-container layer-${e.layer}`;
 
     let posX = e.positionX;
-    let flip = false;
-
-    if (genre === 'fighting' && (e.role === 'player' || e.role === 'enemy')) {
-      posX = fightingIndex === 0 ? 25 : 70;
-      flip = (fightingIndex === 1);
-      fightingIndex++;
-    }
-
     el.style.left = `${posX}%`;
 
     const src = e.gifs.run || e.gifs.idle || '';
@@ -426,26 +360,14 @@ function renderStage() {
 
       const scale = e.scale || 1;
       const offY = e.offsetY || 0;
-      const flipPart = flip ? ' scaleX(-1)' : '';
-      img.style.transform = `scale(${scale}) translateY(${-offY}px)${flipPart}`;
+      img.style.transform = `scale(${scale}) translateY(${-offY}px)`;
 
       el.appendChild(img);
     }
 
     c.appendChild(el);
 
-    if (genre === 'fighting') {
-      if (e.role === 'player') document.getElementById('p1-name').innerText = e.id.toUpperCase();
-      if (e.role === 'enemy') document.getElementById('p2-name').innerText = e.id.toUpperCase();
-    }
   });
-}
-
-function applyGenreLayout() {
-  document.getElementById('game-stage').className = `mode-${game.meta.genre}`;
-  document.getElementById('fighting-ui').classList.toggle(
-    'hidden', game.meta.genre !== 'fighting'
-  );
 }
 
 /* =========================================================

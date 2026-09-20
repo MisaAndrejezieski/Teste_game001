@@ -3,8 +3,7 @@ const RUNTIME = {
   running: false,
   rafId: null,
   lastTime: 0,
-  keys: { left:false, right:false, jump:false, attack:false },
-  keysPrev: { attack:false },
+  keys: { jump:false },
 
   actors: {},
   obstacles: [],
@@ -17,8 +16,10 @@ const RUNTIME = {
   worldSpeed: 0,
 
   lives: 0,
-  hp: 0,
-  maxHp: 0,
+  score: 0,
+  bestScore: 0,
+  baseWorldSpeed: 0,
+  currentSpawnRate: 0,
   gameOver: false,
 
   boot() {
@@ -29,22 +30,15 @@ const RUNTIME = {
     document.title = this.game.meta.title + ' — Anime Game Studio';
     document.getElementById('hud-title').innerText = this.game.meta.title;
 
-    this.maxHp = this.game.rules.fighting.maxHp;
-    this.hp = this.maxHp;
     this.worldSpeed = this.game.rules.runner.worldSpeed;
-
-    document.getElementById('fighting-ui').classList.toggle('hidden',
-      this.game.meta.genre !== 'fighting');
-
-    if (this.game.meta.genre === 'fighting') {
-      document.getElementById('p1-name').innerText = 'P1';
-      document.getElementById('p2-name').innerText = 'P2';
-      this.updateHpBars();
-    }
+    this.baseWorldSpeed = this.worldSpeed;
+    this.currentSpawnRate = this.game.rules.runner.spawnRate;
+    this.bestScore = Number(localStorage.getItem('ags_best_score')) || 0;
 
     this.renderScene();
     this.buildActors();
     this.updateHudLives();
+    this.updateHudScore();
     this.attachInput();
 
     this.running = true;
@@ -57,31 +51,14 @@ const RUNTIME = {
   resolveAsset(p){ return p && p.startsWith('images/') ? '../'+p : p; },
 
   renderScene() {
-    const genre = this.game.meta.genre;
     const bg = document.getElementById('background-layer');
-
-    if (genre === 'runner') {
-      bg.style.backgroundImage = 'none';
-      [0,1,2].forEach(i => {
-        const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
-        const l = this.game.scene.layers[i];
-        el.style.backgroundImage = l.image ? `url('${this.resolveAsset(l.image)}')` : 'none';
-        el.style.backgroundPositionX = '0px';
-      });
-    } else {
-      [0,1,2].forEach(i => {
-        document.querySelector(`.parallax-layer[data-layer="${i}"]`).style.backgroundImage = 'none';
-      });
-      if (this.game.scene.backgroundImage) {
-        bg.style.backgroundImage = `url('${this.resolveAsset(this.game.scene.backgroundImage)}')`;
-        bg.style.backgroundRepeat =
-          this.game.scene.backgroundMode === 'repeat' ? 'repeat' : 'no-repeat';
-        bg.style.backgroundSize =
-          this.game.scene.backgroundMode === 'repeat' ? 'auto' : this.game.scene.backgroundMode;
-      } else {
-        bg.style.backgroundImage = 'none';
-      }
-    }
+    bg.style.backgroundImage = 'none';
+    [0,1,2].forEach(i => {
+      const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
+      const l = this.game.scene.layers[i];
+      el.style.backgroundImage = l.image ? `url('${this.resolveAsset(l.image)}')` : 'none';
+      el.style.backgroundPositionX = '0px';
+    });
   },
 
   /* ---------- ACTORS ---------- */
@@ -90,25 +67,13 @@ const RUNTIME = {
     const c = document.getElementById('entities-container');
     c.innerHTML = '';
     this.actors = {};
-    const genre = this.game.meta.genre;
     const W = window.innerWidth;
 
     Object.keys(this.game.entities).forEach((id, index) => {
       const ent = this.game.entities[id];
-      if (ent.role === 'enemy' && genre === 'runner') return; // spawn dinâmico
+      if (ent.role === 'enemy') return; // spawn dinâmico
 
       let posXPercent = ent.positionX;
-      let flip = false;
-      if (genre === 'fighting') {
-        const fightersBefore = Object.values(this.game.entities)
-          .slice(0, index)
-          .filter(item => item.role === 'player' || item.role === 'enemy').length;
-        if (ent.role === 'player' || ent.role === 'enemy') {
-          posXPercent = fightersBefore === 0 ? 25 : 70;
-          flip = fightersBefore === 1;
-        }
-      }
-
       const el = document.createElement('div');
       el.className = `sprite-container layer-${ent.layer}`;
       const img = document.createElement('img');
@@ -116,8 +81,7 @@ const RUNTIME = {
       if (initial) img.src = this.resolveAsset(initial);
 
       const scale = ent.scale || 1;
-      const flipPart = flip ? ' scaleX(-1)' : '';
-      img.style.transform = `scale(${scale})${flipPart}`;
+      img.style.transform = `scale(${scale})`;
       el.appendChild(img);
       c.appendChild(el);
 
@@ -150,19 +114,21 @@ const RUNTIME = {
   },
 
   update(dt) {
-    if (this.game.meta.genre === 'runner') this.updateRunner(dt);
-    else if (this.game.meta.genre === 'fighting') this.updateFighting(dt);
-    this.keysPrev.attack = this.keys.attack;
+    this.updateRunner(dt);
   },
 
   /* ---------- RUNNER ---------- */
 
   updateRunner(dt) {
+    this.score += dt * 10;
+    this.worldSpeed = Math.min(this.baseWorldSpeed + Math.floor(this.score / 100) * 5, 2000);
+    this.currentSpawnRate = Math.max(400, this.game.rules.runner.spawnRate - Math.floor(this.score / 100) * 20);
+    this.updateHudScore();
     this.worldScroll += this.worldSpeed * dt;
 
     // spawn de obstáculos
     this.obstacleTimer += dt*1000;
-    if (this.obstacleTimer >= this.game.rules.runner.spawnRate) {
+    if (this.obstacleTimer >= this.currentSpawnRate) {
       this.obstacleTimer = 0;
       this.spawnObstacle();
     }
@@ -259,77 +225,6 @@ const RUNTIME = {
     }
   },
 
-  /* ---------- FIGHTING ---------- */
-
-  updateFighting(dt) {
-    const p1 = Object.values(this.actors).find(actor => actor.role === 'player');
-    const p2 = Object.values(this.actors).find(actor => actor.role === 'enemy');
-    if (!p1) return;
-
-    const W = window.innerWidth;
-    const speed = p1.data.speed || 250;
-
-    p1.vx = 0;
-    if (this.keys.left)  p1.vx -= speed;
-    if (this.keys.right) p1.vx += speed;
-    p1.x += p1.vx * dt;
-    p1.x = Math.max(60, Math.min(W - 60, p1.x));
-
-    if (p2) {
-      const minDist = 80;
-      if (Math.abs(p1.x - p2.x) < minDist) {
-        if (p1.x < p2.x) p1.x = p2.x - minDist;
-        else p1.x = p2.x + minDist;
-      }
-    }
-
-    if (this.keys.jump && p1.onGround) {
-      p1.vy = -(p1.data.jumpHeight || 150) * 4;
-      p1.onGround = false;
-    }
-    if (!p1.onGround) {
-      p1.vy += this.GRAVITY * dt;
-      p1.y -= p1.vy * dt * 0.02;
-      if (p1.y <= 0) { p1.y = 0; p1.vy = 0; p1.onGround = true; }
-    }
-
-    // ataque
-    if (this.keys.attack && !this.keysPrev.attack) {
-      this.setAction(p1, 'attack');
-      p1.attackLock = 0.3;
-      if (p2 && Math.abs(p1.x - p2.x) < 110) {
-        this.damageP2(p2);
-      }
-    }
-    if (p1.attackLock > 0) {
-      p1.attackLock -= dt;
-      if (p1.attackLock <= 0) this.setAction(p1, 'idle');
-      return;
-    }
-
-    let next = 'idle';
-    if (!p1.onGround) next = 'jump';
-    else if (p1.vx !== 0) next = 'run';
-    this.setAction(p1, next);
-  },
-
-  damageP2(p2) {
-    this.hp = Math.max(0, this.hp - this.game.rules.fighting.damage);
-    this.updateHpBars();
-    const prev = p2.action;
-    this.setAction(p2, 'bump');
-    setTimeout(() => {
-      if (this.hp <= 0) this.setAction(p2, 'defeat');
-      else this.setAction(p2, 'idle');
-    }, 400);
-  },
-
-  updateHpBars() {
-    const pct = (this.hp / this.maxHp) * 100;
-    const el = document.getElementById('p2-hp');
-    if (el) el.style.width = pct + '%';
-  },
-
   /* ---------- RENDER ---------- */
 
   render() {
@@ -345,14 +240,12 @@ const RUNTIME = {
       o.el.style.bottom = `${this.GROUND_Y + (o.data.offsetY||0)}px`;
     });
 
-    if (this.game.meta.genre === 'runner') {
-      [0,1,2].forEach(i => {
-        const l = this.game.scene.layers[i];
-        if (!l.image) return;
-        const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
-        el.style.backgroundPositionX = `${-this.worldScroll * l.speed}px`;
-      });
-    }
+    [0,1,2].forEach(i => {
+      const l = this.game.scene.layers[i];
+      if (!l.image) return;
+      const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
+      el.style.backgroundPositionX = `${-this.worldScroll * l.speed}px`;
+    });
   },
 
   setAction(actor, action) {
@@ -368,8 +261,21 @@ const RUNTIME = {
     if (el) el.innerText = 'VIDAS: ' + this.lives;
   },
 
+  updateHudScore() {
+    const score = Math.floor(this.score);
+    const scoreEl = document.getElementById('hud-score');
+    const bestEl = document.getElementById('hud-best');
+    if (scoreEl) scoreEl.innerText = 'PONTOS: ' + score;
+    if (bestEl) bestEl.innerText = 'RECORDE: ' + Math.max(this.bestScore, score);
+  },
+
   endGame() {
     this.gameOver = true;
+    this.bestScore = Math.max(this.bestScore, Math.floor(this.score));
+    localStorage.setItem('ags_best_score', String(this.bestScore));
+    const scoreEl = document.getElementById('game-over-score');
+    if (scoreEl) scoreEl.innerText = 'PONTOS: ' + Math.floor(this.score);
+    this.updateHudScore();
     document.getElementById('game-over').classList.remove('hidden');
   },
 
@@ -387,16 +293,18 @@ const RUNTIME = {
   },
 
   clearKeys() {
-    this.keys.left = this.keys.right = this.keys.jump = this.keys.attack = false;
+    this.keys.jump = false;
   },
 
   onKey(e, pressed) {
+    if (e.code === 'Space' && pressed && this.gameOver) {
+      restartGame();
+      return;
+    }
+
     switch (e.code) {
-      case 'ArrowLeft': case 'KeyA': this.keys.left = pressed; e.preventDefault(); break;
-      case 'ArrowRight': case 'KeyD': this.keys.right = pressed; e.preventDefault(); break;
       case 'ArrowUp': case 'KeyW': case 'Space':
         this.keys.jump = pressed; e.preventDefault(); break;
-      case 'KeyF': this.keys.attack = pressed; e.preventDefault(); break;
       case 'Escape': if (pressed) exitGame(); break;
     }
   }
@@ -406,6 +314,10 @@ function exitGame() {
   RUNTIME.running = false;
   cancelAnimationFrame(RUNTIME.rafId);
   window.location.href = '../editor/index.html';
+}
+
+function restartGame() {
+  window.location.reload();
 }
 
 window.addEventListener('DOMContentLoaded', () => RUNTIME.boot());

@@ -12,7 +12,7 @@ const DEFAULT_ENTITY = () => ({
   scale: 1,
   offsetY: 0,
   positionX: 20,
-  gifs: { idle: "", run: "", jump: "", attack: "", bump: "", defeat: "" }
+  gifs: { idle: "", run: "", jump: "", bump: "", defeat: "" }
 });
 
 const DEFAULT_GAME = () => ({
@@ -27,8 +27,7 @@ const DEFAULT_GAME = () => ({
     ]
   },
   rules: {
-    runner:  { worldSpeed: 300, spawnRate: 1400, playerX: 20 },
-    fighting:{ maxHp: 100, damage: 10 }
+    runner: { worldSpeed: 300, spawnRate: 1400, playerX: 20 }
   },
   entities: {}
 });
@@ -61,7 +60,6 @@ function normalizeEntity(id, raw) {
       idle:   (e.gifs && isString(e.gifs.idle))   ? e.gifs.idle   : "",
       run:    (e.gifs && isString(e.gifs.run))    ? e.gifs.run    : "",
       jump:   (e.gifs && isString(e.gifs.jump))   ? e.gifs.jump   : "",
-      attack: (e.gifs && isString(e.gifs.attack)) ? e.gifs.attack : "",
       bump:   (e.gifs && isString(e.gifs.bump))   ? e.gifs.bump   : "",
       defeat: (e.gifs && isString(e.gifs.defeat)) ? e.gifs.defeat : ""
     }
@@ -89,7 +87,7 @@ function normalizeGame(data) {
   const normalized = {
     meta: {
       title: isString(meta.title) && meta.title.trim() ? meta.title : b.meta.title,
-      genre: ['runner','fighting'].includes(meta.genre) ? meta.genre : 'runner',
+      genre: 'runner',
       version: SCHEMA_VERSION
     },
     scene: {
@@ -107,16 +105,6 @@ function normalizeGame(data) {
         spawnRate: numberOrDefault(
           rules.runner && rules.runner.spawnRate,
           b.rules.runner.spawnRate, 200, 10000
-        )
-      },
-      fighting: {
-        maxHp: numberOrDefault(
-          rules.fighting && rules.fighting.maxHp,
-          b.rules.fighting.maxHp, 10, 9999
-        ),
-        damage: numberOrDefault(
-          rules.fighting && rules.fighting.damage,
-          b.rules.fighting.damage, 1, 9999
         )
       }
     },
