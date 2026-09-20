@@ -18,7 +18,7 @@ MAX_LIVES = 3
 GRAVITY = 2200
 JUMP_SPEED = 900
 
-NORA_SCALE = 0.20
+NORA_SCALE = 0.30
 ENEMY_SCALE = 0.16
 
 # Multiplicadores aplicados à velocidade base (via menu)
@@ -27,7 +27,7 @@ SPEED_MAX = 2.5
 SPEED_STEP = 0.25
 
 # Total de inimigas que podem aparecer na partida
-ENEMY_COUNT_MIN = 5
+ENEMY_COUNT_MIN = 2
 ENEMY_COUNT_MAX = 50
 
 NORA_ACTIONS = {
