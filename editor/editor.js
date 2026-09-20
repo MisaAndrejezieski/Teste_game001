@@ -242,6 +242,13 @@ function updatePreview(now) {
     el.style.backgroundPositionX = `${-previewScroll * speed}px`;
   });
 
+  document.querySelectorAll('.preview-obstacle').forEach(obstacle => {
+    const side = obstacle.dataset.spawnSide === 'left' ? 1 : -1;
+    const distance = (previewScroll * 0.35) % (window.innerWidth + 320);
+    const start = side < 0 ? window.innerWidth + 80 : -80;
+    obstacle.style.left = `${start + side * distance}px`;
+  });
+
   requestAnimationFrame(updatePreview);
 }
 
@@ -446,8 +453,14 @@ function renderStage() {
     const e = game.entities[id];
     const el = document.createElement('div');
     el.className = `sprite-container layer-${e.layer}`;
+    if (e.role === 'enemy') {
+      el.classList.add('preview-obstacle');
+      el.dataset.spawnSide = e.spawnSide;
+    }
 
-    let posX = e.positionX;
+    let posX = e.role === 'enemy'
+      ? (e.spawnSide === 'left' ? 0 : 100)
+      : e.positionX;
     el.style.left = `${posX}%`;
 
     const action = e.actions[previewAction] || e.actions.idle || e.actions.run;
@@ -458,7 +471,7 @@ function renderStage() {
 
       const scale = action.scale || 1;
       const posY = action.positionY || 0;
-      el.style.left = `${action.positionX}%`;
+      if (e.role !== 'enemy') el.style.left = `${action.positionX}%`;
       img.style.transform = `scale(${scale}) translateY(${-posY}px)`;
 
       el.appendChild(img);
