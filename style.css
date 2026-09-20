@@ -58,33 +58,39 @@ canvas {
   image-rendering: crisp-edges;
 }
 
-/* Tamanho base ampliado da Buro */
+/* Base da Buro Principal */
 #buroSprite {
-  width: 110px;
-  height: 110px;
+  width: 180px;
+  height: 180px;
   object-fit: contain;
   transform: translate(-50%, -100%);
-  transition: opacity 0.2s ease-in-out;
 }
 
+/* Compensação de escala específica para o pulo pequeno (muse-dash-buro003.gif) */
+#buroSprite.pulo-pequeno {
+  width: 4000px;
+  height: 250px;
+}
+
+/* Buro Fantasma (Morte) */
 #buroSprite.morte {
-  width: 110px;
-  height: 110px;
-  opacity: 0.8;
+  width: 200px;
+  height: 200px;
+  opacity: 0.85;
 }
 
-/* Inimigas com dimensões dinâmicas */
+/* Inimiga Normal */
 .inimigaSprite {
-  width: 95px;
-  height: 95px;
+  width: 160px;
+  height: 160px;
   object-fit: contain;
   transform: scaleX(-1) translate(50%, -100%);
 }
 
-/* Aumenta o tamanho da inimiga no momento da vitória fatal */
+/* Inimiga quando mata a principal (inim004.gif): EM GRANDE DESTAQUE */
 .inimigaSprite.vitoria {
-  width: 130px;
-  height: 130px;
+  width: 260px;
+  height: 260px;
 }
 
 #menuSprite {
@@ -92,8 +98,8 @@ canvas {
   top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   object-fit: contain;
   z-index: 5;
 }
