@@ -18,9 +18,6 @@ MAX_LIVES = 3
 GRAVITY = 2200
 JUMP_SPEED = 900
 
-NORA_SCALE = 0.30
-ENEMY_SCALE = 0.16
-
 # Multiplicadores aplicados à velocidade base (via menu)
 SPEED_MIN = 0.5
 SPEED_MAX = 2.5
@@ -30,17 +27,31 @@ SPEED_STEP = 0.25
 ENEMY_COUNT_MIN = 2
 ENEMY_COUNT_MAX = 50
 
+
+# =============================================================
+# ANIMAÇÕES DA NORA — escala individual por ação
+# =============================================================
+# Cada entrada: filename, scale
+# Ajuste o "scale" de cada linha pra calibrar o tamanho daquele
+# GIF específico. 1.0 = tamanho original, 0.30 = 30% do original.
+
 NORA_ACTIONS = {
-    "idle":   "muse-dash-buro_ tela principal.gif",
-    "run":    "muse-dash-buro_anda_normal.gif",
-    "jump":   "muse-dash-buro_primeira_imagem_do_pulo.gif",
-    "bump":   "muse-dash-buro_primeira_imagem_do_esbarrao.gif",
-    "defeat": "muse-dash-marija_morte.gif",
+    "idle":   ("muse-dash-buro_ tela principal.gif",              0.30),
+    "run":    ("muse-dash-buro_anda_normal.gif",                  0.30),
+    "jump":   ("muse-dash-buro_primeira_imagem_do_pulo.gif",      0.30),
+    "bump":   ("muse-dash-buro_primeira_imagem_do_esbarrao.gif",  0.30),
+    "defeat": ("muse-dash-marija_morte.gif",                      0.30),
 }
 
+
+# =============================================================
+# ANIMAÇÕES DA INIMIGA — escala individual por ação
+# =============================================================
+
 ENEMY_ACTIONS = {
-    "run":  "inimiga_caminha.gif",
-    "bump": "inimiga_esbarra_na_principal.gif",
+    "run":  ("inimiga_caminha.gif",                  0.16),
+    "bump": ("inimiga_esbarra_na_principal.gif",     0.16),
 }
+
 
 BACKGROUND = "cenario004.jpg"
