@@ -1,30 +1,16 @@
 from pathlib import Path
 
-# =============================================================
-# CAMINHOS
-# =============================================================
-
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "images"
-
-
-# =============================================================
-# TELA
-# =============================================================
 
 WIDTH = 1100
 HEIGHT = 620
 FPS = 60
 GROUND_Y = 560
 
-
-# =============================================================
-# MUNDO / FÍSICA
-# =============================================================
-
-WORLD_SPEED = 320           # velocidade do cenário (rolagem)
-ENEMY_SPEED = 520           # velocidade da inimiga (maior = vem mais rápido)
-SPAWN_INTERVAL = 1.5        # segundos entre spawns
+WORLD_SPEED = 320
+ENEMY_SPEED = 520
+SPAWN_INTERVAL = 1.5
 PLAYER_X = 180
 DAMAGE_COOLDOWN = 0.9
 MAX_LIVES = 3
@@ -32,18 +18,17 @@ MAX_LIVES = 3
 GRAVITY = 2200
 JUMP_SPEED = 900
 
-
-# =============================================================
-# ESCALA DOS PERSONAGENS
-# =============================================================
-
-NORA_SCALE = 0.40
+NORA_SCALE = 0.20
 ENEMY_SCALE = 0.16
 
+# Multiplicadores aplicados à velocidade base (via menu)
+SPEED_MIN = 0.5
+SPEED_MAX = 2.5
+SPEED_STEP = 0.25
 
-# =============================================================
-# ANIMAÇÕES DA NORA
-# =============================================================
+# Total de inimigas que podem aparecer na partida
+ENEMY_COUNT_MIN = 5
+ENEMY_COUNT_MAX = 50
 
 NORA_ACTIONS = {
     "idle":   "muse-dash-buro_ tela principal.gif",
@@ -53,19 +38,9 @@ NORA_ACTIONS = {
     "defeat": "muse-dash-marija_morte.gif",
 }
 
-
-# =============================================================
-# ANIMAÇÕES DA INIMIGA
-# =============================================================
-
 ENEMY_ACTIONS = {
     "run":  "inimiga_caminha.gif",
     "bump": "inimiga_esbarra_na_principal.gif",
 }
-
-
-# =============================================================
-# CENÁRIO
-# =============================================================
 
 BACKGROUND = "cenario004.jpg"
