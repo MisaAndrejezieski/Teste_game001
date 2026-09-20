@@ -1,3 +1,166 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #121214;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- Palco ---------- */
+
+#game-stage {
+  flex: 1;
+  position: relative;
+  background: #0f0f1b;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+#background-layer {
+  position: absolute; inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  z-index: 1;
+}
+
+#game-stage.mode-racing #background-layer {
+  animation: scrollBg 3s linear infinite;
+}
+
+@keyframes scrollBg {
+  0%   { background-position-x: 0; }
+  100% { background-position-x: -1000px; }
+}
+
+#fighting-ui {
+  position: absolute; top: 20px; left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  display: flex; justify-content: space-between; align-items: center;
+  z-index: 30;
+}
+#fighting-ui.hidden { display: none; }
+
+.hp-bar-container {
+  width: 42%;
+  background: rgba(0,0,0,0.6);
+  padding: 6px; border-radius: 6px;
+  border: 2px solid #383845;
+}
+.hp-bar-container span {
+  font-size: 0.8rem; font-weight: bold;
+  color: #00e5ff; display: block; margin-bottom: 4px;
+}
+.hp-bar {
+  width: 100%; height: 16px;
+  background: #333; border-radius: 3px; overflow: hidden;
+}
+.hp-fill { height: 100%; background: linear-gradient(90deg, #ff1744, #ffea00); }
+.vs-badge {
+  font-size: 1.4rem; font-weight: 900;
+  color: #ff4081; font-style: italic;
+  text-shadow: 0 0 10px #ff4081;
+}
+
+#ground-line {
+  position: absolute; bottom: 80px; left: 0;
+  width: 100%; height: 4px;
+  background: #ff4081;
+  box-shadow: 0 0 12px #ff4081;
+  z-index: 10;
+}
+
+#entities-container {
+  width: 100%; height: 100%;
+  position: relative; z-index: 5;
+}
+
+.sprite-container {
+  position: absolute; bottom: 80px;
+  display: flex; justify-content: center; align-items: flex-end;
+  transition: all 0.3s ease-out;
+}
+.sprite-container img {
+  display: block; max-width: none;
+  transform-origin: bottom center;
+}
+
+.layer-background { z-index: 2; }
+.layer-ground     { z-index: 11; }
+.layer-foreground { z-index: 20; }
+
+/* ---------- Painel ---------- */
+
+#control-panel {
+  width: 420px;
+  background: #1e1e24;
+  border-left: 2px solid #32323d;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 15px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  color: #ff4081;
+  border-bottom: 1px solid #32323d;
+  padding-bottom: 8px;
+}
+
+.control-group {
+  background: #282830;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #383845;
+}
+.control-group.disabled { opacity: 0.4; pointer-events: none; }
+.control-group h3 {
+  font-size: 0.95rem; margin-bottom: 10px; color: #00e5ff;
+}
+.play-group {
+  border: 1px solid #4caf50;
+  background: linear-gradient(135deg, #1e1e24, #2a2a35);
+}
+
+.field {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; font-size: 0.85rem; gap: 8px;
+}
+.field label { flex: 1; }
+.field input[type="text"],
+.field input[type="number"],
+.field select {
+  background: #121214;
+  border: 1px solid #383845;
+  color: #fff;
+  padding: 6px; border-radius: 4px;
+  flex: 1.2; font-size: 0.8rem;
+}
+.checkbox-field {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; margin-bottom: 8px;
+}
+
+.btn-action {
+  width: 100%;
+  color: #fff; border: none;
+  padding: 10px; border-radius: 4px;
+  cursor: pointer; font-weight: bold; font-size: 0.85rem;
+  margin-top: 5px;
+  transition: filter 0.2s;
+}
+.btn-action:hover { filter: brightness(1.2); }
+.btn-blue   { background: #00b0ff; }
+.btn-red    { background: #e53935; }
+.btn-green  { background: #4caf50; }
+.btn-orange { background: #ff9800; }
+
 #parallax-stage { position:absolute; inset:0; z-index:1; overflow:hidden; }
 .parallax-layer { position:absolute; inset:0; background-repeat:repeat-x; background-size:auto 100%; }
 .layer-row { display:grid; grid-template-columns: 90px 1fr 60px; gap:6px; align-items:center; margin:6px 0; font-size:0.75rem; }
