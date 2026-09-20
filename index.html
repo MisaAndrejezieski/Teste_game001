@@ -8,17 +8,15 @@
 </head>
 <body>
 
-  <!-- Palco / Canvas de Renderização do Jogo -->
   <div id="game-stage">
+    <div id="background-layer"></div>
     <div id="ground-line"></div>
     <div id="entities-container"></div>
   </div>
 
-  <!-- Painel de Controle e Criação -->
   <div id="control-panel">
     <h2>Anime Game Studio</h2>
 
-    <!-- Gerenciamento de Projetos e Modos de Jogo -->
     <div class="control-group">
       <h3>1. Configurações do Jogo</h3>
       <div class="field">
@@ -35,9 +33,25 @@
       </div>
     </div>
 
-    <!-- Seletor de Entidades -->
     <div class="control-group">
-      <h3>2. Entidades & Personagens</h3>
+      <h3>2. Cenário & Fundo (Background)</h3>
+      <div class="file-field">
+        <label>Imagem ou GIF de Fundo:</label>
+        <input type="file" accept="image/*" onchange="uploadBackground(this.files[0])" />
+      </div>
+      <div class="field">
+        <label>Modo de Exibição:</label>
+        <select id="bg-mode" onchange="updateBackgroundMode(this.value)">
+          <option value="cover">Preencher Tela Toda (Cover)</option>
+          <option value="contain">Ajustar Proporção (Contain)</option>
+          <option value="repeat">Repetir Cenário (Pattern)</option>
+        </select>
+      </div>
+      <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Remover Fundo</button>
+    </div>
+
+    <div class="control-group">
+      <h3>3. Entidades & Personagens</h3>
       <div class="field">
         <label>Selecionar:</label>
         <select id="entity-selector" onchange="selectEntity(this.value)"></select>
@@ -47,12 +61,11 @@
         <input type="text" id="new-entity-id" placeholder="ex: chefao_fase1" />
       </div>
       <button class="btn-action btn-blue" onclick="createEntity()">+ Criar Entidade</button>
-      <button class="btn-action btn-red" onclick="deleteEntity()">❌ Excluir Entidade Selecionada</button>
+      <button class="btn-action btn-red" id="btn-delete-entity" onclick="deleteEntity()">❌ Excluir Entidade Selecionada</button>
     </div>
 
-    <!-- Regras e Físicas -->
-    <div class="control-group">
-      <h3>3. Propriedades & Físicas</h3>
+    <div class="control-group" id="group-properties">
+      <h3>4. Propriedades & Físicas</h3>
       <div class="field">
         <label>Papel no Jogo:</label>
         <select id="prop-role" onchange="updateEntityProp('role', this.value)">
@@ -99,9 +112,8 @@
       </div>
     </div>
 
-    <!-- Upload de GIFs por Ação -->
-    <div class="control-group">
-      <h3>4. Upload de GIFs de Animação</h3>
+    <div class="control-group" id="group-gifs">
+      <h3>5. Upload de GIFs de Animação</h3>
       <div class="file-field">
         <label>Parado / Base:</label>
         <input type="file" accept="image/*" onchange="uploadEntityGif('idle', this.files[0])" />
@@ -128,9 +140,8 @@
       </div>
     </div>
 
-    <!-- Salvar e Carregar Arquivo -->
     <div class="control-group">
-      <h3>5. Salvar / Carregar Projeto</h3>
+      <h3>6. Salvar / Carregar Projeto</h3>
       <button class="btn-action btn-green" onclick="downloadGameFile()">💾 Baixar Arquivo do Jogo (.json)</button>
       <input type="file" id="import-file" accept=".json" style="display: none;" onchange="loadGameFile(event)" />
       <button class="btn-action btn-orange" onclick="document.getElementById('import-file').click()">📂 Carregar Arquivo de Jogo</button>
