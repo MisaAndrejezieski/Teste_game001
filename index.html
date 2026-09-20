@@ -8,15 +8,32 @@
 </head>
 <body>
 
-  <div id="game-stage">
+  <!-- Palco / Canvas de Renderização do Jogo -->
+  <div id="game-stage" class="mode-runner">
     <div id="background-layer"></div>
+    
+    <!-- Interface Dinâmica de Luta (HP Bars) -->
+    <div id="fighting-ui" class="hidden">
+      <div class="hp-bar-container player1">
+        <span id="p1-name">P1</span>
+        <div class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="hp-bar-container player2">
+        <span id="p2-name">P2</span>
+        <div class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
+      </div>
+    </div>
+
     <div id="ground-line"></div>
     <div id="entities-container"></div>
   </div>
 
+  <!-- Painel de Controle e Criação -->
   <div id="control-panel">
     <h2>Anime Game Studio</h2>
 
+    <!-- Configurações Globais -->
     <div class="control-group">
       <h3>1. Configurações do Jogo</h3>
       <div class="field">
@@ -33,6 +50,7 @@
       </div>
     </div>
 
+    <!-- Cenário e Fundo -->
     <div class="control-group">
       <h3>2. Cenário & Fundo (Background)</h3>
       <div class="file-field">
@@ -50,6 +68,7 @@
       <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Remover Fundo</button>
     </div>
 
+    <!-- Gerenciador de Entidades/Personagens -->
     <div class="control-group">
       <h3>3. Entidades & Personagens</h3>
       <div class="field">
@@ -64,6 +83,7 @@
       <button class="btn-action btn-red" id="btn-delete-entity" onclick="deleteEntity()">❌ Excluir Entidade Selecionada</button>
     </div>
 
+    <!-- Regras e Físicas -->
     <div class="control-group" id="group-properties">
       <h3>4. Propriedades & Físicas</h3>
       <div class="field">
@@ -112,6 +132,7 @@
       </div>
     </div>
 
+    <!-- Upload de GIFs por Ação -->
     <div class="control-group" id="group-gifs">
       <h3>5. Upload de GIFs de Animação</h3>
       <div class="file-field">
@@ -140,6 +161,7 @@
       </div>
     </div>
 
+    <!-- Salvar e Carregar Arquivo -->
     <div class="control-group">
       <h3>6. Salvar / Carregar Projeto</h3>
       <button class="btn-action btn-green" onclick="downloadGameFile()">💾 Baixar Arquivo do Jogo (.json)</button>
