@@ -17,11 +17,6 @@ from PIL import Image, ImageSequence
 # =============================================================
 
 class AnimatedImage:
-    """
-    Carrega um GIF, aplica escala e flip uma única vez no load,
-    e expõe update() + draw() para o loop principal.
-    """
-
     def __init__(self, path: Path, scale: float = 1.0, flip: bool = False):
         self.frames: list[pygame.Surface] = []
         self.durations: list[int] = []
@@ -40,20 +35,17 @@ class AnimatedImage:
                     rgba.tobytes(), rgba.size, "RGBA"
                 ).convert_alpha()
 
-                # Aplica escala no load (uma vez, não por frame)
                 if self.scale != 1.0:
                     w = max(1, int(surface.width * self.scale))
                     h = max(1, int(surface.height * self.scale))
                     surface = pygame.transform.smoothscale(surface, (w, h))
 
-                # Flip também no load
                 if self.flip:
                     surface = pygame.transform.flip(surface, True, False)
 
                 self.frames.append(surface)
                 self.durations.append(max(30, frame.info.get("duration", 100)))
         except (FileNotFoundError, OSError):
-            # Fallback: superfície transparente caso o GIF não exista
             size = max(1, int(64 * self.scale))
             self.frames = [pygame.Surface((size, size), pygame.SRCALPHA)]
             self.durations = [100]
@@ -96,15 +88,14 @@ class Enemy:
 @dataclass
 class Player:
     x: float
-    y: float = 0.0              # 0 = no chão; positivo = acima do chão
-    vy: float = 0.0             # velocidade vertical (px/s)
+    y: float = 0.0
+    vy: float = 0.0
     on_ground: bool = True
     action: str = "run"
     hit_timer: float = 0.0
     animations: dict = field(default_factory=dict)
 
     def jump(self, jump_speed: float) -> None:
-        """Só permite pular quando está no chão."""
         if self.on_ground:
             self.vy = -jump_speed
             self.on_ground = False
@@ -123,9 +114,9 @@ class RunnerGame:
         self.font = pygame.font.Font(None, 32)
         self.big_font = pygame.font.Font(None, 72)
 
-        self.backgrounds = self.load_backgrounds()
+        # Camadas de paralaxe: [(surface, y_destino, velocidade), ...]
+        self.parallax_layers = self.load_parallax_layers()
 
-        # Carrega animações com escala configurada
         self.nora_animations = self.load_action_set(
             config.NORA_ACTIONS, scale=config.NORA_SCALE
         )
@@ -133,13 +124,11 @@ class RunnerGame:
             config.ENEMY_ACTIONS, scale=config.ENEMY_SCALE, flip=True
         )
 
-        # Jogador
         self.player = Player(
             x=config.PLAYER_X,
             animations=self.nora_animations,
         )
 
-        # Estado
         self.enemies: list[Enemy] = []
         self.lives = config.MAX_LIVES
         self.score = 0.0
@@ -150,50 +139,58 @@ class RunnerGame:
 
     # ---------- CARREGAMENTO ----------
 
-    def load_backgrounds(self) -> list[tuple[pygame.Surface, float]]:
+    def load_parallax_layers(self) -> list[tuple[pygame.Surface, int, float]]:
         """
-        Carrega os cenários respeitando a proporção.
-        - Se a imagem é maior ou igual à tela: CROP centralizado (sem distorção)
-        - Se a imagem é menor: redimensiona mantendo proporção e centraliza
-        """
-        backgrounds = []
-        target_w, target_h = config.WIDTH, config.HEIGHT
+        Divide o cenario004.jpg em faixas horizontais e monta
+        cada faixa como uma camada de paralaxe.
 
-        for filename, speed in config.SCENERY:
+        Retorna lista de (surface_da_faixa, y_destino_na_tela, velocidade).
+        """
+        layers: list[tuple[pygame.Surface, int, float]] = []
+
+        # Cache das imagens já carregadas (caso a mesma imagem seja
+        # usada em várias faixas, evitamos recarregar)
+        cache: dict[str, pygame.Surface] = {}
+
+        for filename, y_start_pct, y_end_pct, speed in config.SCENERY:
             path = config.ASSET_DIR / filename
-            try:
-                image = pygame.image.load(str(path)).convert()
-            except pygame.error:
+
+            # Carrega imagem original (ou pega do cache)
+            if filename not in cache:
+                try:
+                    cache[filename] = pygame.image.load(str(path)).convert()
+                except pygame.error:
+                    continue
+            original = cache[filename]
+
+            img_w, img_h = original.get_size()
+
+            # Calcula a faixa horizontal (em pixels) a recortar
+            y_start_px = int(img_h * y_start_pct)
+            y_end_px = int(img_h * y_end_pct)
+            band_h = y_end_px - y_start_px
+            if band_h <= 0:
                 continue
 
-            img_w, img_h = image.get_size()
+            # Recorta a faixa
+            band = original.subsurface(
+                pygame.Rect(0, y_start_px, img_w, band_h)
+            ).copy()
 
-            # Caso 1: imagem maior/igual → crop centralizado
-            if img_w >= target_w and img_h >= target_h:
-                crop_x = (img_w - target_w) // 2
-                crop_y = (img_h - target_h) // 2
-                image = image.subsurface(
-                    pygame.Rect(crop_x, crop_y, target_w, target_h)
-                ).copy()
+            # Ajusta a largura para preencher a tela mantendo a
+            # proporção da faixa (para não esticar)
+            scale_factor = config.WIDTH / img_w
+            new_w = config.WIDTH
+            new_h = max(1, int(band_h * scale_factor))
+            band = pygame.transform.smoothscale(band, (new_w, new_h))
 
-            # Caso 2: imagem menor → redimensiona mantendo proporção e centraliza
-            else:
-                scale_factor = min(target_w / img_w, target_h / img_h)
-                new_w = int(img_w * scale_factor)
-                new_h = int(img_h * scale_factor)
-                image = pygame.transform.smoothscale(image, (new_w, new_h))
+            # Calcula onde essa faixa vai ser desenhada na tela
+            # (o topo de cada faixa na tela)
+            y_dest = int(config.HEIGHT * y_start_pct)
 
-                canvas = pygame.Surface((target_w, target_h))
-                canvas.fill((135, 198, 235))
-                canvas.blit(
-                    image,
-                    ((target_w - new_w) // 2, (target_h - new_h) // 2),
-                )
-                image = canvas
+            layers.append((band, y_dest, speed))
 
-            backgrounds.append((image, speed))
-
-        return backgrounds
+        return layers
 
     def load_action_set(
         self,
@@ -268,7 +265,6 @@ class RunnerGame:
         self.score += dt * 10
         self.scroll += config.WORLD_SPEED * dt
 
-        # Spawn de inimigos
         self.spawn_timer -= dt
         if self.spawn_timer <= 0:
             self.spawn_timer = config.SPAWN_INTERVAL
@@ -282,7 +278,6 @@ class RunnerGame:
     def _update_player(self, dt: float) -> None:
         p = self.player
 
-        # Física vertical (pulo + gravidade)
         if not p.on_ground:
             p.vy += config.GRAVITY * dt
             p.y -= p.vy * dt
@@ -291,10 +286,8 @@ class RunnerGame:
                 p.vy = 0.0
                 p.on_ground = True
 
-        # Cooldown de dano
         p.hit_timer = max(0.0, p.hit_timer - dt)
 
-        # Escolhe a ação visual
         if p.hit_timer > 0:
             p.action = "bump"
         elif not p.on_ground:
@@ -310,7 +303,6 @@ class RunnerGame:
                 enemy.action = "run"
                 enemy.animation = self.enemy_animations["run"]
 
-        # Remove inimigos que saíram da tela
         self.enemies = [e for e in self.enemies if e.x > -200]
 
     def _check_collisions(self) -> None:
@@ -325,7 +317,6 @@ class RunnerGame:
                 self.damage_timer = config.DAMAGE_COOLDOWN
                 self.player.hit_timer = 0.5
 
-                # Inimigo mostra animação de bump
                 if "bump" in self.enemy_animations:
                     enemy.animation = self.enemy_animations["bump"]
                     enemy.action = "bump"
@@ -337,7 +328,6 @@ class RunnerGame:
                 break
 
     def _player_rect(self) -> pygame.Rect:
-        # Hitbox da Nora: 55% da largura, 85% da altura do sprite atual
         anim = (
             self.nora_animations.get(self.player.action)
             or self.nora_animations.get("run")
@@ -366,11 +356,14 @@ class RunnerGame:
     def draw(self) -> None:
         self.screen.fill((135, 198, 235))
 
-        # Paralaxe — desenha cada camada duas vezes para loop infinito
-        for image, speed in self.backgrounds:
-            offset = int(-self.scroll * speed) % config.WIDTH
-            self.screen.blit(image, (offset - config.WIDTH, 0))
-            self.screen.blit(image, (offset, 0))
+        # Paralaxe real: cada faixa rola em velocidade própria
+        for band_surface, y_dest, speed in self.parallax_layers:
+            band_w = band_surface.get_width()
+            offset = int(-self.scroll * speed) % band_w
+
+            # Desenha duas vezes para criar o loop infinito
+            self.screen.blit(band_surface, (offset - band_w, y_dest))
+            self.screen.blit(band_surface, (offset, y_dest))
 
         # Nora
         nora_anim = (
