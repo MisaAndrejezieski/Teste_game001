@@ -1,19 +1,21 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+const buroSprite = document.getElementById("buroSprite");
+const menuSprite = document.getElementById("menuSprite");
+const inimigasContainer = document.getElementById("inimigasContainer");
+
 const LARGURA = 960;
 const ALTURA = 540;
 const CHAO_Y = ALTURA - 80;
 
-// --- Configurações de Física ---
+// --- Ajustes de Física e Velocidades ---
 const GRAVIDADE = 1000;
-const FORCA_PULO = -480;
-const VELOCIDADE_CENARIO = 280;
+const FORCA_PULO = -480;        // Pulo proporcional e mais alto
+const VELOCIDADE_CENARIO = 280; // Velocidade mais cadenciada
 
-// --- Dicionário de Animações ---
-const animacoes = {};
-const caminhos = {
-  buroInicial: "images/muse-dash-buro.gif",
+// --- Caminhos das Imagens ---
+const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
   buroPulo: "images/muse-dash-buro008.gif",
@@ -23,33 +25,6 @@ const caminhos = {
   inimigaPassou: "images/inim002.gif",
   inimigaImpacto: "images/inim003.gif"
 };
-
-// Gerenciador de Animação para Canvas
-class AnimadorGif {
-  constructor(caminho) {
-    this.canvasFrame = document.createElement("canvas");
-    this.ctxFrame = this.canvasFrame.getContext("2d");
-    this.carregado = false;
-
-    if (window.gifler) {
-      gifler(caminho).get((anim) => {
-        this.canvasFrame.width = anim.width;
-        this.canvasFrame.height = anim.height;
-        anim.animateIn(this.canvasFrame);
-        this.carregado = true;
-      });
-    }
-  }
-
-  obterCanvas() {
-    return this.carregado ? this.canvasFrame : null;
-  }
-}
-
-// Carrega todos os GIFs com animação
-Object.keys(caminhos).forEach(chave => {
-  animacoes[chave] = new AnimadorGif(caminhos[chave]);
-});
 
 // --- Estado do Jogo ---
 let estadoJogo = "TELA_INICIAL";
@@ -67,7 +42,7 @@ let inimigas = [];
 let tempoSpawn = 0;
 let ultimoTempo = performance.now();
 
-// --- Classe Inimiga ---
+// --- Classe da Inimiga ---
 class Inimiga {
   constructor(x, y) {
     this.x = x;
@@ -75,33 +50,41 @@ class Inimiga {
     this.largura = 35;
     this.altura = 50;
     this.esbarrou = false;
+
+    // Criar elemento DOM da imagem da inimiga
+    this.element = document.createElement("img");
+    this.element.className = "sprite inimigaSprite";
+    this.element.src = CAMINHOS.inimigaCorrendo;
+    inimigasContainer.appendChild(this.element);
+
+    this.atualizarPosicaoDOM();
   }
 
-  atualizar(dt) {
+  atualizar(dt, posXJogador) {
     this.x -= VELOCIDADE_CENARIO * dt;
-  }
-
-  desenhar(ctx, posXJogador) {
-    let anim = animacoes.inimigaCorrendo;
 
     if (this.esbarrou) {
-      anim = animacoes.inimigaImpacto;
+      if (!this.element.src.includes(CAMINHOS.inimigaImpacto)) {
+        this.element.src = CAMINHOS.inimigaImpacto;
+      }
     } else if (this.x + this.largura < posXJogador) {
-      anim = animacoes.inimigaPassou;
+      if (!this.element.src.includes(CAMINHOS.inimigaPassou)) {
+        this.element.src = CAMINHOS.inimigaPassou;
+      }
     }
 
-    const frameCanvas = anim.obterCanvas();
-    if (!frameCanvas) return;
+    this.atualizarPosicaoDOM();
+  }
 
-    ctx.save();
-    ctx.translate(this.x + this.largura / 2, this.y);
-    ctx.scale(-1, 1);
-    
-    const larguraImg = 65;
-    const alturaImg = 65;
-    
-    ctx.drawImage(frameCanvas, -larguraImg / 2, -alturaImg, larguraImg, alturaImg);
-    ctx.restore();
+  atualizarPosicaoDOM() {
+    this.element.style.left = `${this.x}px`;
+    this.element.style.top = `${this.y}px`;
+  }
+
+  destruir() {
+    if (this.element && this.element.parentNode) {
+      this.element.parentNode.removeChild(this.element);
+    }
   }
 }
 
@@ -118,7 +101,7 @@ function acaoJogador() {
 window.addEventListener("keydown", (e) => {
   if (e.code === "Space" || e.code === "ArrowUp") acaoJogador();
 });
-canvas.addEventListener("click", acaoJogador);
+document.getElementById("gameArea").addEventListener("click", acaoJogador);
 
 function resetarJogo() {
   posX = 120;
@@ -129,8 +112,20 @@ function resetarJogo() {
   tempoMorte = 0;
   tempoTropeco = 0;
   esbarroesSofridos = 0;
+
+  inimigas.forEach(i => i.destruir());
   inimigas = [];
+
+  menuSprite.style.display = "none";
+  buroSprite.style.display = "block";
+
   estadoJogo = "JOGANDO";
+}
+
+function atualizarSpriteJogador(novoSrc) {
+  if (!buroSprite.src.includes(novoSrc)) {
+    buroSprite.src = novoSrc;
+  }
 }
 
 // --- Loop Principal ---
@@ -138,15 +133,9 @@ function gameLoop(tempoAtual) {
   const dt = Math.min((tempoAtual - ultimoTempo) / 1000, 0.1);
   ultimoTempo = tempoAtual;
 
-  ctx.fillStyle = "#191423";
-  ctx.fillRect(0, 0, LARGURA, ALTURA);
+  ctx.clearRect(0, 0, LARGURA, ALTURA);
 
   if (estadoJogo === "TELA_INICIAL") {
-    const frame = animacoes.buroInicial.obterCanvas();
-    if (frame) {
-      ctx.drawImage(frame, LARGURA / 2 - 100, ALTURA / 2 - 120, 200, 200);
-    }
-    
     ctx.fillStyle = "#fff0fa";
     ctx.font = "bold 24px Arial";
     ctx.textAlign = "center";
@@ -156,6 +145,7 @@ function gameLoop(tempoAtual) {
     
     if (estadoJogo === "JOGANDO") {
       tempoCorrida += dt;
+
       if (tempoTropeco > 0) tempoTropeco -= dt;
 
       velY += GRAVIDADE * dt;
@@ -177,9 +167,10 @@ function gameLoop(tempoAtual) {
 
       for (let i = inimigas.length - 1; i >= 0; i--) {
         let ini = inimigas[i];
-        ini.atualizar(dt);
+        ini.atualizar(dt, posX);
 
         if (ini.x < -60) {
+          ini.destruir();
           inimigas.splice(i, 1);
           continue;
         }
@@ -208,33 +199,27 @@ function gameLoop(tempoAtual) {
       }
     }
 
-    // Desenhar Chão
+    // --- Desenhar Chão ---
     ctx.fillStyle = "#b45078";
     ctx.fillRect(0, CHAO_Y, LARGURA, ALTURA - CHAO_Y);
 
-    // Desenhar Inimigas
-    inimigas.forEach(ini => ini.desenhar(ctx, posX));
-
-    // Selecionar Animação da Jogadora
-    let animBuro = animacoes.buroAndando1;
+    // --- Atualizar Sprite do Jogador ---
+    let srcAtual = CAMINHOS.buroAndando1;
     if (estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
-      animBuro = animacoes.buroMorte;
+      srcAtual = CAMINHOS.buroMorte;
     } else if (tempoTropeco > 0) {
-      animBuro = animacoes.buroTropeco;
+      srcAtual = CAMINHOS.buroTropeco;
     } else if (!noChao) {
-      animBuro = animacoes.buroPulo;
+      srcAtual = CAMINHOS.buroPulo;
     } else if (tempoCorrida > 5.0) {
-      animBuro = animacoes.buroAndando2;
+      srcAtual = CAMINHOS.buroAndando2;
     }
 
-    const frameBuro = animBuro.obterCanvas();
-    if (frameBuro) {
-      const larguraBuro = 105;
-      const alturaBuro = 105;
-      ctx.drawImage(frameBuro, posX - larguraBuro / 2, posY - alturaBuro, larguraBuro, alturaBuro);
-    }
+    atualizarSpriteJogador(srcAtual);
+    buroSprite.style.left = `${posX}px`;
+    buroSprite.style.top = `${posY}px`;
 
-    // Textos de Interface
+    // --- Interface de Texto ---
     ctx.fillStyle = "#fff0fa";
     ctx.textAlign = "left";
     ctx.font = "18px Arial";
