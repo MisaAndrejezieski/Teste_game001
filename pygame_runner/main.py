@@ -17,6 +17,11 @@ from PIL import Image, ImageSequence
 # =============================================================
 
 class AnimatedImage:
+    """
+    Carrega um GIF, aplica escala e flip uma única vez no load,
+    e expõe update() + draw() para o loop principal.
+    """
+
     def __init__(self, path: Path, scale: float = 1.0, flip: bool = False):
         self.frames: list[pygame.Surface] = []
         self.durations: list[int] = []
@@ -35,7 +40,7 @@ class AnimatedImage:
                     rgba.tobytes(), rgba.size, "RGBA"
                 ).convert_alpha()
 
-                # Aplica escala UMA VEZ no load (não por frame)
+                # Aplica escala no load (uma vez, não por frame)
                 if self.scale != 1.0:
                     w = max(1, int(surface.width * self.scale))
                     h = max(1, int(surface.height * self.scale))
@@ -48,6 +53,7 @@ class AnimatedImage:
                 self.frames.append(surface)
                 self.durations.append(max(30, frame.info.get("duration", 100)))
         except (FileNotFoundError, OSError):
+            # Fallback: superfície transparente caso o GIF não exista
             size = max(1, int(64 * self.scale))
             self.frames = [pygame.Surface((size, size), pygame.SRCALPHA)]
             self.durations = [100]
@@ -90,14 +96,15 @@ class Enemy:
 @dataclass
 class Player:
     x: float
-    y: float                     # posição Y (0 = no chão; positivo = acima)
-    vy: float = 0.0              # velocidade vertical
+    y: float = 0.0              # 0 = no chão; positivo = acima do chão
+    vy: float = 0.0             # velocidade vertical (px/s)
     on_ground: bool = True
     action: str = "run"
     hit_timer: float = 0.0
     animations: dict = field(default_factory=dict)
 
     def jump(self, jump_speed: float) -> None:
+        """Só permite pular quando está no chão."""
         if self.on_ground:
             self.vy = -jump_speed
             self.on_ground = False
@@ -117,6 +124,8 @@ class RunnerGame:
         self.big_font = pygame.font.Font(None, 72)
 
         self.backgrounds = self.load_backgrounds()
+
+        # Carrega animações com escala configurada
         self.nora_animations = self.load_action_set(
             config.NORA_ACTIONS, scale=config.NORA_SCALE
         )
@@ -124,7 +133,13 @@ class RunnerGame:
             config.ENEMY_ACTIONS, scale=config.ENEMY_SCALE, flip=True
         )
 
-        self.player = Player(x=config.PLAYER_X, y=0.0, animations=self.nora_animations)
+        # Jogador
+        self.player = Player(
+            x=config.PLAYER_X,
+            animations=self.nora_animations,
+        )
+
+        # Estado
         self.enemies: list[Enemy] = []
         self.lives = config.MAX_LIVES
         self.score = 0.0
@@ -141,9 +156,12 @@ class RunnerGame:
             path = config.ASSET_DIR / filename
             try:
                 image = pygame.image.load(str(path)).convert()
-                image = pygame.transform.scale(image, (config.WIDTH, config.HEIGHT))
+                image = pygame.transform.scale(
+                    image, (config.WIDTH, config.HEIGHT)
+                )
                 backgrounds.append((image, speed))
             except pygame.error:
+                # Se algum cenário não carregar, pula ele silenciosamente
                 continue
         return backgrounds
 
@@ -154,14 +172,21 @@ class RunnerGame:
         flip: bool = False,
     ) -> dict[str, AnimatedImage]:
         return {
-            name: AnimatedImage(config.ASSET_DIR / filename, scale=scale, flip=flip)
+            name: AnimatedImage(
+                config.ASSET_DIR / filename,
+                scale=scale,
+                flip=flip,
+            )
             for name, filename in actions.items()
         }
 
     # ---------- RESET / CLOSE ----------
 
     def reset(self) -> None:
-        self.player = Player(x=config.PLAYER_X, y=0.0, animations=self.nora_animations)
+        self.player = Player(
+            x=config.PLAYER_X,
+            animations=self.nora_animations,
+        )
         self.enemies.clear()
         self.lives = config.MAX_LIVES
         self.score = 0.0
@@ -173,7 +198,7 @@ class RunnerGame:
     def close(self) -> None:
         pygame.quit()
 
-    # ---------- LOOP ----------
+    # ---------- LOOP PRINCIPAL ----------
 
     def run(self) -> None:
         running = True
@@ -217,7 +242,12 @@ class RunnerGame:
         self.spawn_timer -= dt
         if self.spawn_timer <= 0:
             self.spawn_timer = config.SPAWN_INTERVAL
-            self.enemies.append(Enemy(x=config.WIDTH + 80, animation=self.enemy_animations["run"]))
+            self.enemies.append(
+                Enemy(
+                    x=config.WIDTH + 80,
+                    animation=self.enemy_animations["run"],
+                )
+            )
 
     def _update_player(self, dt: float) -> None:
         p = self.player
@@ -250,6 +280,7 @@ class RunnerGame:
                 enemy.action = "run"
                 enemy.animation = self.enemy_animations["run"]
 
+        # Remove inimigos que saíram da tela
         self.enemies = [e for e in self.enemies if e.x > -200]
 
     def _check_collisions(self) -> None:
@@ -264,6 +295,7 @@ class RunnerGame:
                 self.damage_timer = config.DAMAGE_COOLDOWN
                 self.player.hit_timer = 0.5
 
+                # Inimigo mostra animação de bump
                 if "bump" in self.enemy_animations:
                     enemy.animation = self.enemy_animations["bump"]
                     enemy.action = "bump"
@@ -276,7 +308,10 @@ class RunnerGame:
 
     def _player_rect(self) -> pygame.Rect:
         # Hitbox da Nora: 55% da largura, 85% da altura do sprite atual
-        anim = self.nora_animations.get(self.player.action) or self.nora_animations.get("run")
+        anim = (
+            self.nora_animations.get(self.player.action)
+            or self.nora_animations.get("run")
+        )
         w = int(anim.width * 0.55)
         h = int(anim.height * 0.85)
         cx = self.player.x
@@ -314,8 +349,10 @@ class RunnerGame:
         )
 
         # Nora
-        nora_anim = self.nora_animations.get(self.player.action) \
-                    or self.nora_animations.get("run")
+        nora_anim = (
+            self.nora_animations.get(self.player.action)
+            or self.nora_animations.get("run")
+        )
         if nora_anim:
             nora_anim.draw(
                 self.screen,
@@ -337,6 +374,7 @@ class RunnerGame:
         )
         self.screen.blit(hud, (20, 20))
 
+        # Game Over
         if self.game_over:
             title = self.big_font.render("GAME OVER", True, (255, 80, 100))
             hint = self.font.render(
