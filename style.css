@@ -16,11 +16,24 @@ body {
 #game-stage {
   flex: 1;
   position: relative;
-  background: linear-gradient(180deg, #1b1b2f 0%, #0f0f1b 100%);
+  background: #0f0f1b;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   overflow: hidden;
+}
+
+/* Camada dedicada ao GIF/Imagem de Fundo */
+#background-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  z-index: 1;
 }
 
 #ground-line {
@@ -38,6 +51,7 @@ body {
   width: 100%;
   height: 100%;
   position: relative;
+  z-index: 5;
 }
 
 .sprite-container {
@@ -82,6 +96,11 @@ h2 {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #383845;
+}
+
+.control-group.disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .control-group h3 {
