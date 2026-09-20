@@ -4,6 +4,7 @@ import sys
 
 import pygame
 
+# --- Inicialização ---
 pygame.init()
 
 # --- Configurações da Janela ---
@@ -13,16 +14,35 @@ pygame.display.set_caption("A Jornada - Pixel Art Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carregamento de Sprites ---
-SPRITE_W, SPRITE_H = 64, 64
+# --- Carregamento e Processamento dos Sprites (sprites001.png -> 238x212) ---
 FOLHA = pygame.image.load("personagem.png").convert_alpha()
-ESCALA = 3.0
 
-def carregar_frame(i):
-    sub = FOLHA.subsurface((i * SPRITE_W, 0, SPRITE_W, SPRITE_H))
-    return pygame.transform.scale(sub, (int(SPRITE_W * ESCALA), int(SPRITE_H * ESCALA)))
+COLUNAS = 6
+LINHAS = 4
 
-FRAMES = [carregar_frame(i) for i in range(4)]
+# Dimensões exatas de cada célula da grade
+SPRITE_W = 238 // COLUNAS  # ~39 px
+SPRITE_H = 212 // LINHAS   #  53 px
+
+SPRITE_ESCALA = 2.2  # Tamanho do personagem na tela
+
+def pegar_frame_grade(coluna, linha):
+    """Recorta um frame específico da folha (coluna 0..5, linha 0..3)."""
+    x = coluna * SPRITE_W
+    y = linha * SPRITE_H
+    
+    largura = min(SPRITE_W, 238 - x)
+    altura = min(SPRITE_H, 212 - y)
+    
+    sub = FOLHA.subsurface((x, y, largura, altura))
+    return pygame.transform.scale(
+        sub, 
+        (int(largura * SPRITE_ESCALA), int(altura * SPRITE_ESCALA))
+    )
+
+# Linha 1: Caminhada de perfil
+FRAMES_ANDAR = [pegar_frame_grade(col, 1) for col in range(6)]
+FRAME_IDLE = FRAMES_ANDAR[0]
 
 # --- Paleta de Cores Mágica / Desértica ---
 COR_CEU_TOPO = (12, 10, 30)
@@ -32,7 +52,6 @@ COR_CEU_BASE = (110, 75, 120)
 COR_LUA = (255, 245, 220)
 COR_LUA_HALO = (200, 160, 210)
 COR_ESTRELA = (240, 230, 255)
-COR_PIRAMIDE = (35, 28, 52)
 COR_MONTANHA = (50, 38, 70)
 COR_DUNA_FUNDO = (80, 52, 95)
 COR_DUNA_MEDIO = (115, 70, 110)
@@ -41,11 +60,11 @@ COR_CHAO = (90, 58, 85)
 COR_PARTICULA = (210, 160, 255)
 
 # --- Física e Mundo ---
-GRAVIDADE = 380.0
-FORCA_FLUTUACAO = -280.0
+GRAVIDADE = 420.0
+FORCA_FLUTUACAO = -310.0
 VELOCIDADE_X = 220.0
-VEL_Y_MAX = 200.0
-CHAO_Y = ALTURA - 75
+VEL_Y_MAX = 220.0
+CHAO_Y = ALTURA - 70
 
 # --- Estado do Jogador ---
 x, y = LARGURA // 2, CHAO_Y
@@ -53,7 +72,6 @@ vel_y = 0.0
 direcao = 1
 no_ar = False
 tempo_animacao = 0.0
-nova_direcao = 0
 
 off_fundo = off_medio = off_perto = 0.0
 
@@ -72,17 +90,17 @@ estrelas = [
 
 def criar_particula(px, py):
     particulas.append({
-        "x": px + random.uniform(-10, 10),
-        "y": py + random.uniform(-5, 5),
-        "vel_x": random.uniform(-30, 30),
-        "vel_y": random.uniform(10, 40),
+        "x": px + random.uniform(-12, 12),
+        "y": py + random.uniform(-2, 4),
+        "vel_x": random.uniform(-25, 25),
+        "vel_y": random.uniform(15, 45),
         "vida": 1.0,
         "tam": random.uniform(2, 4)
     })
 
 def atualizar_desenhar_particulas(dt):
     for p in particulas[:]:
-        p["vida"] -= dt * 1.5
+        p["vida"] -= dt * 1.6
         if p["vida"] <= 0:
             particulas.remove(p)
             continue
@@ -94,7 +112,7 @@ def atualizar_desenhar_particulas(dt):
         TELA.blit(surf, (p["x"], p["y"]))
 
 def desenhar_cenario(tempo):
-    # Gradiente do Céu Otimizado
+    # Gradiente do Céu
     for i in range(0, ALTURA, 3):
         t = i / ALTURA
         if t < 0.4:
@@ -115,7 +133,7 @@ def desenhar_cenario(tempo):
         cor = [min(255, int(COR_ESTRELA[k] * b)) for k in range(3)]
         pygame.draw.circle(TELA, cor, (int(px), int(e["y"])), e["tam"])
 
-    # Lua com Halo Alpha
+    # Lua com Halo
     lx, ly = LARGURA - 160, 100
     for r, a in [(80, 15), (55, 30), (35, 60)]:
         h = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
@@ -132,7 +150,7 @@ def desenhar_dunas(offset, cor, alt_base, amp, comp):
 def desenhar_sombra(cx, cy):
     dist = CHAO_Y - cy
     fator = max(0.2, 1.0 - dist / 160.0)
-    w, h = int(36 * fator), int(8 * fator)
+    w, h = int(38 * fator), int(8 * fator)
     if w > 0 and h > 0:
         s = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.ellipse(s, (0, 0, 0, 110), (0, 0, w, h))
@@ -154,10 +172,10 @@ while True:
     if teclas[pygame.K_RIGHT]: nova_direcao = 1
     if nova_direcao != 0: direcao = nova_direcao
 
-    # Física Fluida de Flutuação (Arco Fluido)
+    # Flutuação e Física
     if teclas[pygame.K_SPACE] or teclas[pygame.K_UP]:
         vel_y += FORCA_FLUTUACAO * dt * 7.5
-        criar_particula(x, y - 10)
+        criar_particula(x, y - 5)
     else:
         vel_y += GRAVIDADE * dt
 
@@ -174,7 +192,7 @@ while True:
     x += nova_direcao * VELOCIDADE_X * dt
     x = max(30, min(LARGURA - 30, x))
 
-    # Atualização do Paralaxe
+    # Paralaxe
     off_fundo += nova_direcao * 18 * dt
     off_medio += nova_direcao * 55 * dt
     off_perto += nova_direcao * 120 * dt
@@ -191,14 +209,21 @@ while True:
     atualizar_desenhar_particulas(dt)
     desenhar_sombra(x, y)
 
-    # Animação da Personagem
-    frame_idx = 3 if no_ar else (1 if nova_direcao != 0 and int(tempo_animacao * 8) % 2 == 0 else (2 if nova_direcao != 0 else 0))
-    sprite = FRAMES[frame_idx]
-    if direcao == -1:
-        sprite = pygame.transform.flip(sprite, True, False)
+    # Seleção do Frame de Animação
+    if no_ar:
+        sprite_atual = FRAMES_ANDAR[3]  # Frame com pernas arqueadas no ar
+    elif nova_direcao != 0:
+        idx = int(tempo_animacao * 10) % len(FRAMES_ANDAR)
+        sprite_atual = FRAMES_ANDAR[idx]
+    else:
+        sprite_atual = FRAME_IDLE
 
-    rect = sprite.get_rect()
+    # Espelhamento Horizontal
+    if direcao == -1:
+        sprite_atual = pygame.transform.flip(sprite_atual, True, False)
+
+    rect = sprite_atual.get_rect()
     rect.midbottom = (int(x), int(y))
-    TELA.blit(sprite, rect)
+    TELA.blit(sprite_atual, rect)
 
     pygame.display.flip()
