@@ -21,15 +21,56 @@ const DEFAULT_GAME = () => ({
     backgroundImage: "",
     backgroundMode: "cover",
     layers: [
-      { image: "", speed: 0.2 },
-      { image: "", speed: 0.6 },
-      { image: "", speed: 1.0 }
+      { image: "images/cenario001.jpg", speed: 0.2 },
+      { image: "images/cenario002.jpg", speed: 0.6 },
+      { image: "images/cenario003.png", speed: 1.0 }
     ]
   },
   rules: {
     runner: { worldSpeed: 300, spawnRate: 1400, playerX: 20 }
   },
-  entities: {}
+  entities: {
+    jogador: {
+      id: "jogador",
+      role: "player",
+      layer: "foreground",
+      hasDensity: true,
+      extraLives: 3,
+      speed: 200,
+      jumpHeight: 150,
+      floatTime: 0,
+      scale: 1,
+      offsetY: 0,
+      positionX: 20,
+      gifs: {
+        idle: "images/muse-dash-buro_ tela principal.gif",
+        run: "images/muse-dash-buro_anda_normal.gif",
+        jump: "images/muse-dash-buro_primeira_imagem_do_pulo.gif",
+        bump: "images/muse-dash-buro_primeira_imagem_do_esbarrao.gif",
+        defeat: "images/muse-dash-marija_morte.gif"
+      }
+    },
+    obstaculo: {
+      id: "obstaculo",
+      role: "enemy",
+      layer: "foreground",
+      hasDensity: true,
+      extraLives: 1,
+      speed: 0,
+      jumpHeight: 0,
+      floatTime: 0,
+      scale: 1,
+      offsetY: 0,
+      positionX: 100,
+      gifs: {
+        idle: "images/inim004.gif",
+        run: "images/inim004.gif",
+        jump: "",
+        bump: "",
+        defeat: ""
+      }
+    }
+  }
 });
 
 function isObject(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }

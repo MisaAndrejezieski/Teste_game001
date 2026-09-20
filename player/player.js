@@ -3,7 +3,7 @@ const RUNTIME = {
   running: false,
   rafId: null,
   lastTime: 0,
-  keys: { jump:false },
+  keys: { left:false, right:false, jump:false },
 
   actors: {},
   obstacles: [],
@@ -58,6 +58,7 @@ const RUNTIME = {
       const l = this.game.scene.layers[i];
       el.style.backgroundImage = l.image ? `url('${this.resolveAsset(l.image)}')` : 'none';
       el.style.backgroundPositionX = '0px';
+      el.dataset.speed = String(l.speed || (i + 1) * 0.35);
     });
   },
 
@@ -78,12 +79,7 @@ const RUNTIME = {
       el.className = `sprite-container layer-${ent.layer}`;
       const img = document.createElement('img');
       const initial = ent.gifs.idle || ent.gifs.run || '';
-      const setHitbox = () => {
-        actor.hitboxWidth = img.naturalWidth || 60;
-        actor.hitboxHeight = img.naturalHeight || 60;
-      };
       if (initial) {
-        img.addEventListener('load', setHitbox, { once: true });
         img.src = this.resolveAsset(initial);
       }
 
@@ -103,7 +99,12 @@ const RUNTIME = {
         baseOffsetY: ent.offsetY || 0
       };
 
-      if (img.complete) setHitbox();
+      const updateHitbox = () => {
+        this.actors[id].hitboxWidth = img.naturalWidth || 60;
+        this.actors[id].hitboxHeight = img.naturalHeight || 60;
+      };
+      if (initial) img.addEventListener('load', updateHitbox, { once: true });
+      if (img.complete) updateHitbox();
 
       if (ent.role === 'player') {
         this.lives = ent.extraLives || 3;
@@ -147,6 +148,11 @@ const RUNTIME = {
     // player
     const player = Object.values(this.actors).find(a => a.role === 'player');
     if (player) {
+      const playerSpeed = player.data.speed || 200;
+      if (this.keys.left) player.x -= playerSpeed * dt;
+      if (this.keys.right) player.x += playerSpeed * dt;
+      player.x = Math.max(window.innerWidth * 0.1, Math.min(window.innerWidth * 0.45, player.x));
+
       // pulo
       if (this.keys.jump && player.onGround) {
         player.vy = -Math.sqrt(2 * this.GRAVITY * (player.data.jumpHeight || 150));
@@ -260,7 +266,8 @@ const RUNTIME = {
       const l = this.game.scene.layers[i];
       if (!l.image) return;
       const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
-      el.style.backgroundPositionX = `${-this.worldScroll * l.speed}px`;
+      const speed = Number(el.dataset.speed) || (i + 1) * 0.35;
+      el.style.backgroundPositionX = `${-this.worldScroll * speed}px`;
     });
   },
 
@@ -323,13 +330,20 @@ const RUNTIME = {
     this._ku = e => this.onKey(e, false);
     this._blur = () => this.clearKeys();
     this._vis  = () => { if (document.hidden) this.clearKeys(); };
+    this._tap = () => {
+      if (!this.gameOver) this.keys.jump = true;
+      setTimeout(() => { this.keys.jump = false; }, 0);
+    };
     window.addEventListener('keydown', this._kd);
     window.addEventListener('keyup', this._ku);
     window.addEventListener('blur', this._blur);
     document.addEventListener('visibilitychange', this._vis);
+    document.getElementById('game-stage').addEventListener('pointerdown', this._tap);
   },
 
   clearKeys() {
+    this.keys.left = false;
+    this.keys.right = false;
     this.keys.jump = false;
   },
 
@@ -340,6 +354,14 @@ const RUNTIME = {
     }
 
     switch (e.code) {
+      case 'ArrowLeft': case 'KeyA':
+        this.keys.left = pressed;
+        e.preventDefault();
+        break;
+      case 'ArrowRight': case 'KeyD':
+        this.keys.right = pressed;
+        e.preventDefault();
+        break;
       case 'ArrowUp': case 'KeyW': case 'Space':
         this.keys.jump = pressed; e.preventDefault(); break;
       case 'Escape': if (pressed) exitGame(); break;

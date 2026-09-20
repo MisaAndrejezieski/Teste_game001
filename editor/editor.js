@@ -6,6 +6,9 @@
 let game = Schema.DEFAULT_GAME();
 let selectedEntityId = null;
 let manifest = { files: [] };
+let previewAction = 'idle';
+let previewScroll = 0;
+let previewLastTime = 0;
 
 /* =========================================================
    BOOT
@@ -19,6 +22,7 @@ async function init() {
   game = draft || Schema.DEFAULT_GAME();
   bindEvents();
   refreshAll();
+  startPreviewLoop();
 }
 
 // Lê o manifest de imagens (uma única vez, na inicialização)
@@ -87,6 +91,7 @@ function bindEvents() {
       const ent = game.entities[selectedEntityId];
       if (!ent) return;
       ent.gifs[action] = e.target.value ? `images/${e.target.value}` : "";
+      previewAction = action;
       renderStage();
       saveDebounced();
     });
@@ -234,6 +239,27 @@ function renderScene() {
   });
 }
 
+function startPreviewLoop() {
+  previewLastTime = performance.now();
+  requestAnimationFrame(updatePreview);
+}
+
+function updatePreview(now) {
+  const dt = Math.min((now - previewLastTime) / 1000, 0.05);
+  previewLastTime = now;
+  previewScroll += game.rules.runner.worldSpeed * dt;
+
+  [0, 1, 2].forEach(i => {
+    const layer = game.scene.layers[i];
+    const el = document.querySelector(`.parallax-layer[data-layer="${i}"]`);
+    if (!el || !layer.image) return;
+    const speed = layer.speed || (i + 1) * 0.35;
+    el.style.backgroundPositionX = `${-previewScroll * speed}px`;
+  });
+
+  requestAnimationFrame(updatePreview);
+}
+
 /* =========================================================
    ENTIDADES
    ========================================================= */
@@ -277,6 +303,7 @@ function disableEntityPanels(d) {
 function selectEntity(id) {
   if (!game.entities[id]) return;
   selectedEntityId = id;
+  previewAction = 'idle';
   loadEntityPanel();
 }
 
@@ -353,7 +380,7 @@ function renderStage() {
     let posX = e.positionX;
     el.style.left = `${posX}%`;
 
-    const src = e.gifs.run || e.gifs.idle || '';
+    const src = e.gifs[previewAction] || e.gifs.idle || e.gifs.run || '';
     if (src) {
       const img = document.createElement('img');
       img.src = resolveAsset(src);
@@ -439,5 +466,5 @@ function deleteSelectedProject() {
 
 function playGame() {
   Storage.saveDraft(game);
-  window.open('../player/index.html', '_blank');
+  window.open('../player/index.html', 'ags-player');
 }

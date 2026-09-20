@@ -118,6 +118,12 @@ h2 {
   border: 1px solid #4caf50;
   background: linear-gradient(135deg, #1e1e24, #2a2a35);
 }
+.play-hint {
+  color: #aaa;
+  font-size: 0.75rem;
+  margin-top: 8px;
+  text-align: center;
+}
 
 .field {
   display: flex;
