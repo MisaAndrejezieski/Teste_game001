@@ -53,6 +53,12 @@ const RUNTIME = {
 
   resolveAsset(p){ return p && p.startsWith('images/') ? '../'+p : p; },
 
+  getAction(entity, preferred) {
+    const names = [preferred, 'idle', 'run', ...Object.keys(entity.actions)];
+    return names.map(name => entity.actions[name])
+      .find(action => action && action.gif) || entity.actions.idle || entity.actions.run;
+  },
+
   renderScene() {
     const bg = document.getElementById('background-layer');
     bg.style.backgroundImage = 'none';
@@ -77,17 +83,17 @@ const RUNTIME = {
       const ent = this.game.entities[id];
       if (id !== this.playerId) return; // apenas o jogador fica fixo
 
-      const initialAction = ent.actions.idle || ent.actions.run;
-      let posXPercent = initialAction.positionX;
+      const initialAction = this.getAction(ent, 'idle');
+      const posXPercent = ent.positionX;
       const el = document.createElement('div');
       el.className = `sprite-container layer-${ent.layer}`;
       const img = document.createElement('img');
-      const initial = (ent.actions.idle && ent.actions.idle.gif) || (ent.actions.run && ent.actions.run.gif) || '';
+      const initial = initialAction && initialAction.gif || '';
       if (initial) {
         img.src = this.resolveAsset(initial);
       }
 
-      const scale = ent.actions.idle.scale;
+      const scale = initialAction.scale;
       img.style.transform = `scale(${scale})`;
       el.appendChild(img);
       c.appendChild(el);
@@ -95,10 +101,11 @@ const RUNTIME = {
       this.actors[id] = {
         id, role: ent.role, data: ent, el, img,
         x: (posXPercent/100)*W,
+        baseX: (posXPercent/100)*W,
         y: 0, vx: 0, vy: 0,
         onGround: true,
         action: 'idle',
-        actionScale: ent.actions.idle.scale,
+        actionScale: initialAction.scale,
         actionPositionY: initialAction.positionY,
         actionPositionX: initialAction.positionX,
         hitboxWidth: 60,
@@ -107,8 +114,8 @@ const RUNTIME = {
       };
 
       const updateHitbox = () => {
-        this.actors[id].hitboxWidth = img.naturalWidth || 60;
-        this.actors[id].hitboxHeight = img.naturalHeight || 60;
+        this.actors[id].hitboxWidth = (img.naturalWidth || 60) * 0.58;
+        this.actors[id].hitboxHeight = (img.naturalHeight || 60) * 0.82;
       };
       if (initial) img.addEventListener('load', updateHitbox, { once: true });
       if (img.complete) updateHitbox();
@@ -156,9 +163,7 @@ const RUNTIME = {
     const player = Object.values(this.actors).find(a => a.role === 'player');
     if (player) {
       const playerSpeed = player.data.speed || 200;
-      if (this.keys.left) player.x -= playerSpeed * dt;
-      if (this.keys.right) player.x += playerSpeed * dt;
-      player.x = Math.max(window.innerWidth * 0.1, Math.min(window.innerWidth * 0.45, player.x));
+      player.x = player.baseX;
 
       // pulo
       if (this.keys.jump && player.onGround) {
@@ -178,6 +183,15 @@ const RUNTIME = {
     const W = window.innerWidth;
     this.obstacles.forEach(o => {
       o.x += o.direction * this.worldSpeed * dt;
+      if (o.hitTimer > 0) {
+        o.hitTimer -= dt;
+        if (o.hitTimer <= 0) {
+          o.actionData = this.getAction(o.data, 'run');
+          o.img.src = this.resolveAsset(o.actionData.gif);
+          o.img.style.transform =
+            `scale(${o.actionData.scale}) scaleX(${o.data.flip ? -1 : 1})`;
+        }
+      }
       if ((o.direction < 0 && o.x < -200) ||
           (o.direction > 0 && o.x > window.innerWidth + 200)) o.dead = true;
     });
@@ -188,7 +202,7 @@ const RUNTIME = {
         if (o.dead) return;
         if (this.collide(player, o)) {
           this.hitPlayer(player);
-          o.dead = true;
+          this.hitObstacle(o);
         }
       });
     }
@@ -206,7 +220,7 @@ const RUNTIME = {
     const el = document.createElement('div');
     el.className = `sprite-container layer-${ent.layer}`;
     const img = document.createElement('img');
-      const runAction = ent.actions.run || ent.actions.idle;
+      const runAction = this.getAction(ent, 'run');
     const src = runAction.gif || '';
     if (src) img.src = this.resolveAsset(src);
       const scale = runAction.scale;
@@ -217,19 +231,31 @@ const RUNTIME = {
     container.appendChild(el);
 
     this.obstacles.push({
-      data: ent, el, img,
+      data: ent, actionData: runAction, el, img,
       x: ent.spawnSide === 'left' ? -40 : window.innerWidth + 40,
       y: 0,
       direction,
       w: 60 * scale,
       h: 60 * scale,
+      hitTimer: 0,
       dead: false
     });
     const obstacle = this.obstacles[this.obstacles.length - 1];
     img.addEventListener('load', () => {
-      obstacle.w = (img.naturalWidth || 60) * scale;
-      obstacle.h = (img.naturalHeight || 60) * scale;
+      obstacle.w = (img.naturalWidth || 60) * scale * 0.58;
+      obstacle.h = (img.naturalHeight || 60) * scale * 0.82;
     }, { once: true });
+  },
+
+  hitObstacle(obstacle) {
+    if (obstacle.hitTimer > 0) return;
+    const damageAction = obstacle.data.actions.bump || obstacle.data.actions.hit;
+    if (!damageAction || !damageAction.gif) return;
+    obstacle.actionData = damageAction;
+    obstacle.hitTimer = 0.4;
+    obstacle.img.src = this.resolveAsset(damageAction.gif);
+    obstacle.img.style.transform =
+      `scale(${damageAction.scale}) scaleX(${obstacle.data.flip ? -1 : 1})`;
   },
 
   collide(a, o) {
@@ -237,19 +263,18 @@ const RUNTIME = {
     const aw = (a.hitboxWidth || 60) * (a.actionScale || 1);
     const ah = (a.hitboxHeight || 60) * (a.actionScale || 1);
     const playerBottom = this.GROUND_Y + a.y + (playerAction.positionY || 0);
-    const obstacleAction = o.data.actions.run || o.data.actions.idle;
+    const obstacleAction = o.actionData || this.getAction(o.data, 'run');
     const obstacleBottom = this.GROUND_Y + (obstacleAction.positionY || 0);
-    const pad = 8;
-    const playerLeft = a.x + pad;
-    const playerRight = a.x + aw - pad;
-    const obstacleLeft = o.x + pad;
-    const obstacleRight = o.x + o.w - pad;
-    const playerTop = playerBottom - ah + pad;
-    const obstacleTop = obstacleBottom - o.h + pad;
+    const playerLeft = a.x + (a.hitboxWidth || 60) * 0.21;
+    const playerRight = playerLeft + aw;
+    const obstacleLeft = o.x + o.w * 0.21;
+    const obstacleRight = obstacleLeft + o.w;
+    const playerTop = playerBottom - ah;
+    const obstacleTop = obstacleBottom - o.h;
     return playerLeft < obstacleRight &&
       playerRight > obstacleLeft &&
-      playerTop < obstacleBottom - pad &&
-      playerBottom - pad > obstacleTop;
+      playerTop < obstacleBottom &&
+      playerBottom > obstacleTop;
   },
 
   hitPlayer(player) {
@@ -283,7 +308,7 @@ const RUNTIME = {
 
     this.obstacles.forEach(o => {
       o.el.style.left = `${o.x}px`;
-        o.el.style.bottom = `${this.GROUND_Y + (o.data.actions.run.positionY || 0)}px`;
+      o.el.style.bottom = `${this.GROUND_Y + (o.actionData.positionY || 0)}px`;
     });
 
     [0,1,2].forEach(i => {
@@ -297,15 +322,14 @@ const RUNTIME = {
 
   setAction(actor, action) {
     if (actor.action === action) return;
-    const actionData = actor.data.actions[action] || actor.data.actions.idle || actor.data.actions.run;
+    const actionData = this.getAction(actor.data, action);
     const src = actionData && actionData.gif;
     if (!src) return;
     const settings = actionData;
     actor.img.src = this.resolveAsset(src);
     actor.actionScale = settings.scale;
     actor.actionPositionY = settings.positionY;
-    actor.actionPositionX = settings.positionX;
-    actor.x = (settings.positionX / 100) * window.innerWidth;
+    actor.actionPositionX = actor.baseX;
     actor.img.style.transform = `scale(${actor.actionScale})`;
     actor.action = action;
   },

@@ -464,7 +464,7 @@ function renderStage() {
       : e.positionX;
     el.style.left = `${posX}%`;
 
-    const action = e.actions[previewAction] || e.actions.idle || e.actions.run;
+    const action = getVisibleAction(e, previewAction);
     const src = action && action.gif;
     if (src) {
       const img = document.createElement('img');
@@ -482,6 +482,12 @@ function renderStage() {
     c.appendChild(el);
 
   });
+}
+
+function getVisibleAction(entity, preferred) {
+  const candidates = [preferred, 'idle', 'run', ...Object.keys(entity.actions)];
+  return candidates.map(name => entity.actions[name])
+    .find(action => action && action.gif) || entity.actions.idle || entity.actions.run;
 }
 
 /* =========================================================

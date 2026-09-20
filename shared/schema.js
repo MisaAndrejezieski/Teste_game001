@@ -38,8 +38,8 @@ const DEFAULT_GAME = () => ({
     runner: { worldSpeed: 300, spawnRate: 1400, playerX: 20 }
   },
   entities: {
-    jogador: {
-      id: "jogador",
+    nora: {
+      id: "nora",
       role: "player",
       layer: "foreground",
       hasDensity: true,
@@ -189,9 +189,11 @@ function normalizeGame(data) {
   };
 
   const ids = Object.keys(entities).filter(Boolean);
-  const preferredPlayer = ids.includes('jogador') &&
-    normalizeEntity('jogador', entities.jogador).role === 'player'
-    ? 'jogador'
+  const preferredPlayer = ids.includes('nora') &&
+    normalizeEntity('nora', entities.nora).role === 'player'
+    ? 'nora'
+    : ids.includes('jogador') && normalizeEntity('jogador', entities.jogador).role === 'player'
+      ? 'jogador'
     : ids.find(id => normalizeEntity(id, entities[id]).role === 'player') ||
       ids[0];
 
@@ -210,7 +212,9 @@ function normalizeGame(data) {
         action.positionX = 100;
       });
     }
-    normalized.entities[id] = entity;
+    const normalizedId = id === 'jogador' && !entities.nora ? 'nora' : id;
+    entity.id = normalizedId;
+    normalized.entities[normalizedId] = entity;
   });
 
   return normalized;
