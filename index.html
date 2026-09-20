@@ -3,16 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Runner Infinite - Muse Dash Edition</title>
+  <title>Jogo com Painel de Ajuste de Sprites</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="gameArea">
-    <img id="menuSprite" src="images/muse-dash-buro.gif" style="display: block;">
-    <img id="buroSprite" class="sprite" src="images/muse-dash-buro001.gif" style="display: none;">
-    <div id="inimigasContainer"></div>
-    <canvas id="gameCanvas" width="960" height="540"></canvas>
+  <div id="containerPrincipal">
+    <!-- Área do Jogo -->
+    <div id="gameArea">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+      
+      <!-- Container para Sprites Dinâmicas -->
+      <img id="buroSprite" class="sprite" src="images/muse-dash-buro001.gif" alt="Buro">
+      <img id="menuSprite" class="sprite" src="images/muse-dash-buro001.gif" alt="Menu" style="display: none;">
+      <div id="inimigasContainer"></div>
+    </div>
+
+    <!-- Painel de Ajustes de Proporção em Tempo Real -->
+    <div id="painelAjustes">
+      <h3>Calibrador de GIFs</h3>
+
+      <div class="secao-ajuste">
+        <h4>Buro - Pulo Normal (003)</h4>
+        <label>Escala (Scale): 
+          <input type="number" id="scale_puloPequeno" step="0.05" value="1.5">
+        </label>
+        <label>Ajuste Chão (% OffsetY): 
+          <input type="number" id="offset_puloPequeno" step="1" value="0">
+        </label>
+      </div>
+
+      <div class="secao-ajuste">
+        <h4>Buro - Pulo Especial (003.001)</h4>
+        <label>Escala (Scale): 
+          <input type="number" id="scale_puloEspecial" step="0.05" value="1.5">
+        </label>
+        <label>Ajuste Chão (% OffsetY): 
+          <input type="number" id="offset_puloEspecial" step="1" value="0">
+        </label>
+      </div>
+
+      <div class="secao-ajuste">
+        <h4>Buro - Morte (Marija)</h4>
+        <label>Escala (Scale): 
+          <input type="number" id="scale_morte" step="0.05" value="1.1">
+        </label>
+        <label>Ajuste Chão (% OffsetY): 
+          <input type="number" id="offset_morte" step="1" value="0">
+        </label>
+      </div>
+
+      <div class="secao-ajuste">
+        <h4>Inimiga - Golpe Fatal / Vitória (inim004)</h4>
+        <label>Escala (Scale): 
+          <input type="number" id="scale_vitoria" step="0.05" value="1.8">
+        </label>
+        <label>Ajuste Chão (% OffsetY): 
+          <input type="number" id="offset_vitoria" step="1" value="22">
+        </label>
+      </div>
+    </div>
   </div>
 
   <script src="script.js"></script>
