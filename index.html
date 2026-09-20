@@ -1,70 +1,385 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo com Painel de Ajuste de Sprites</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ajuste de Proporções e Tempos - Slot Anime</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #121214;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Área de Visualização do Jogo */
+    #game-stage {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(180deg, #2a1b4e 0%, #110927 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    /* Linha do Chão para referência visual */
+    #ground-line {
+      position: absolute;
+      bottom: 80px;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: #ff4081;
+      box-shadow: 0 0 10px #ff4081;
+      z-index: 1;
+    }
+
+    /* Contêineres de Personagens */
+    .sprite-container {
+      position: absolute;
+      bottom: 80px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 2;
+      transition: transform 0.1s ease-out;
+    }
+
+    #buro-container {
+      left: 20%;
+    }
+
+    #enemy-container {
+      right: 20%;
+    }
+
+    .sprite-container img {
+      display: block;
+      max-width: none;
+    }
+
+    /* Painel de Controles Lateral */
+    #control-panel {
+      width: 380px;
+      background: #1e1e24;
+      border-left: 2px solid #32323d;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: flex-start;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      color: #ff4081;
+      border-bottom: 1px solid #32323d;
+      padding-bottom: 8px;
+    }
+
+    .control-group {
+      background: #282830;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #383845;
+    }
+
+    .control-group h3 {
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      color: #00e5ff;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .field label {
+      flex: 1;
+    }
+
+    .field input[type="range"] {
+      flex: 1.5;
+      margin: 0 8px;
+    }
+
+    .field span {
+      width: 40px;
+      text-align: right;
+      font-family: monospace;
+      color: #ffeb3b;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      background: #3f51b5;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #5c6bc0;
+    }
+
+    button.active {
+      background: #ff4081;
+    }
+
+    /* Botão de Exportação de Configurações */
+    #export-btn {
+      background: #4caf50;
+      padding: 12px;
+      font-size: 0.9rem;
+      margin-top: auto;
+    }
+
+    #export-btn:hover {
+      background: #66bb6a;
+    }
+  </style>
 </head>
 <body>
 
-  <div id="containerPrincipal">
-    <!-- Área do Jogo -->
-    <div id="gameArea">
-      <canvas id="gameCanvas" width="960" height="540"></canvas>
-      
-      <!-- Container para Sprites Dinâmicas -->
-      <img id="buroSprite" class="sprite" src="images/muse-dash-buro001.gif" alt="Buro">
-      <img id="menuSprite" class="sprite" src="images/muse-dash-buro001.gif" alt="Menu" style="display: none;">
-      <div id="inimigasContainer"></div>
+  <!-- Palco do Jogo -->
+  <div id="game-stage">
+    <div id="ground-line"></div>
+
+    <!-- Personagem Principal (Buro) -->
+    <div id="buro-container" class="sprite-container">
+      <img id="buro-img" src="muse-dash-buro_anda_normal.jpg" alt="Buro" />
     </div>
 
-    <!-- Painel de Ajustes de Proporção em Tempo Real -->
-    <div id="painelAjustes">
-      <h3>Calibrador de GIFs</h3>
-
-      <div class="secao-ajuste">
-        <h4>Buro - Pulo Normal (003)</h4>
-        <label>Escala (Scale): 
-          <input type="number" id="scale_puloPequeno" step="0.05" value="1.5">
-        </label>
-        <label>Ajuste Chão (% OffsetY): 
-          <input type="number" id="offset_puloPequeno" step="1" value="0">
-        </label>
-      </div>
-
-      <div class="secao-ajuste">
-        <h4>Buro - Pulo Especial (003.001)</h4>
-        <label>Escala (Scale): 
-          <input type="number" id="scale_puloEspecial" step="0.05" value="1.5">
-        </label>
-        <label>Ajuste Chão (% OffsetY): 
-          <input type="number" id="offset_puloEspecial" step="1" value="0">
-        </label>
-      </div>
-
-      <div class="secao-ajuste">
-        <h4>Buro - Morte (Marija)</h4>
-        <label>Escala (Scale): 
-          <input type="number" id="scale_morte" step="0.05" value="1.1">
-        </label>
-        <label>Ajuste Chão (% OffsetY): 
-          <input type="number" id="offset_morte" step="1" value="0">
-        </label>
-      </div>
-
-      <div class="secao-ajuste">
-        <h4>Inimiga - Golpe Fatal / Vitória (inim004)</h4>
-        <label>Escala (Scale): 
-          <input type="number" id="scale_vitoria" step="0.05" value="1.8">
-        </label>
-        <label>Ajuste Chão (% OffsetY): 
-          <input type="number" id="offset_vitoria" step="1" value="22">
-        </label>
-      </div>
+    <!-- Inimiga -->
+    <div id="enemy-container" class="sprite-container">
+      <img id="enemy-img" src="inimiga_caminha.jpg" alt="Inimiga" />
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Painel de Ajustes de Proporção e Tempos -->
+  <div id="control-panel">
+    <h2>Ajustes de Proporção & Tempos</h2>
+
+    <!-- Testador de Ações Sequenciais -->
+    <div class="control-group">
+      <h3>Testar Animações da Buro</h3>
+      <div class="btn-grid">
+        <button onclick="testAction('run_normal')">Corrida Normal</button>
+        <button onclick="testAction('run_10s')">Corrida 10s</button>
+        <button onclick="testAction('jump_normal')">Pulo Normal (2 Fases)</button>
+        <button onclick="testAction('jump_special')">Pulo Especial (2 Fases)</button>
+        <button onclick="testAction('bump')">Esbarrão (2 Fases)</button>
+        <button onclick="testAction('victory')">Vitória</button>
+        <button onclick="testAction('defeat')">Morte (Marija)</button>
+        <button onclick="testAction('menu')">Menu Principal</button>
+      </div>
+    </div>
+
+    <!-- Tempos das Ações de 2 GIFs -->
+    <div class="control-group">
+      <h3>Tempos de Transição (ms)</h3>
+      <div class="field">
+        <label>Pulo Normal (Fase 1 → 2):</label>
+        <input type="range" id="t-jump-normal" min="100" max="1500" value="400" oninput="updateTiming('jumpNormal', this.value)" />
+        <span id="v-t-jump-normal">400ms</span>
+      </div>
+      <div class="field">
+        <label>Pulo Especial (Fase 1 → 2):</label>
+        <input type="range" id="t-jump-special" min="100" max="1500" value="500" oninput="updateTiming('jumpSpecial', this.value)" />
+        <span id="v-t-jump-special">500ms</span>
+      </div>
+      <div class="field">
+        <label>Esbarrão (Fase 1 → 2):</label>
+        <input type="range" id="t-bump" min="100" max="2000" value="600" oninput="updateTiming('bump', this.value)" />
+        <span id="v-t-bump">600ms</span>
+      </div>
+    </div>
+
+    <!-- Escala e Ajustes Atuais -->
+    <div class="control-group">
+      <h3>Ajuste do Sprite Ativo</h3>
+      <div class="field">
+        <label>Escala (Tamanho):</label>
+        <input type="range" id="active-scale" min="0.2" max="3" step="0.05" value="1" oninput="updateActiveSprite('scale', this.value)" />
+        <span id="v-active-scale">1.00</span>
+      </div>
+      <div class="field">
+        <label>Ajuste de Chão (Y):</label>
+        <input type="range" id="active-offset-y" min="-150" max="150" value="0" oninput="updateActiveSprite('offsetY', this.value)" />
+        <span id="v-active-offset-y">0px</span>
+      </div>
+    </div>
+
+    <button id="export-btn" onclick="exportConfig()">Copiar Configurações Finalizadas</button>
+  </div>
+
+  <script>
+    // Mapeamento dos Nomes dos GIFs
+    const ASSETS = {
+      buro: {
+        menu: 'muse-dash-buro_ tela principal.jpg',
+        runNormal: 'muse-dash-buro_anda_normal.jpg',
+        run10s: 'muse-dash-buro_andar_depois_de_10s.jpg',
+        jumpNormal1: 'muse-dash-buro_primeira_imagem_do_pulo.jpg',
+        jumpNormal2: 'muse-dash-buro_segunda_imagem_do_pulo_normal.jpg',
+        jumpSpecial1: 'muse-dash-buro_primeira_imagem_do_pulo_especial.jpg',
+        jumpSpecial2: 'muse-dash-buro_segunda_imagem_do_pulo_especial.jpg',
+        bump1: 'muse-dash-buro_primeira_imagem_do_esbarrao.jpg',
+        bump2: 'muse-dash-buro_segunda_imagem_do_esbarrao.jpg',
+        victory: 'muse-dash-buro_chega_na_linha_de_vitoria.jpg',
+        defeat: 'muse-dash-marija_morte.jpg'
+      },
+      enemy: {
+        walk: 'inimiga_caminha.jpg',
+        bump: 'inimiga_esbarra_na_principal.jpg',
+        pass: 'inimiga_passa_da_principal.jpg'
+      }
+    };
+
+    // Configurações de Tamanho (Escala) e Offset de Cada Sprite
+    const config = {
+      timings: {
+        jumpNormal: 400,
+        jumpSpecial: 500,
+        bump: 600
+      },
+      sprites: {
+        'muse-dash-buro_anda_normal.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_andar_depois_de_10s.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_primeira_imagem_do_pulo.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_segunda_imagem_do_pulo_normal.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_primeira_imagem_do_pulo_especial.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_segunda_imagem_do_pulo_especial.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_primeira_imagem_do_esbarrao.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_segunda_imagem_do_esbarrao.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_chega_na_linha_de_vitoria.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-buro_ tela principal.jpg': { scale: 1, offsetY: 0 },
+        'muse-dash-marija_morte.jpg': { scale: 1, offsetY: 0 },
+        'inimiga_caminha.jpg': { scale: 1, offsetY: 0 },
+        'inimiga_esbarra_na_principal.jpg': { scale: 1, offsetY: 0 },
+        'inimiga_passa_da_principal.jpg': { scale: 1, offsetY: 0 }
+      }
+    };
+
+    let activeBuroSprite = ASSETS.buro.runNormal;
+    let sequenceTimeout = null;
+
+    const buroImg = document.getElementById('buro-img');
+    const enemyImg = document.getElementById('enemy-img');
+
+    // Aplica os estilos no elemento da imagem
+    function applySpriteStyle(imgElement, spriteName) {
+      const spriteConfig = config.sprites[spriteName] || { scale: 1, offsetY: 0 };
+      imgElement.src = spriteName;
+      imgElement.style.transform = `scale(${spriteConfig.scale}) translateY(${-spriteConfig.offsetY}px)`;
+    }
+
+    // Atualiza o painel de controles para o sprite selecionado
+    function refreshControlPanel() {
+      const currentConfig = config.sprites[activeBuroSprite];
+      document.getElementById('active-scale').value = currentConfig.scale;
+      document.getElementById('v-active-scale').innerText = Number(currentConfig.scale).toFixed(2);
+      document.getElementById('active-offset-y').value = currentConfig.offsetY;
+      document.getElementById('v-active-offset-y').innerText = currentConfig.offsetY + 'px';
+    }
+
+    // Altera escala ou offset do sprite que está visível no momento
+    function updateActiveSprite(prop, value) {
+      config.sprites[activeBuroSprite][prop] = parseFloat(value);
+      applySpriteStyle(buroImg, activeBuroSprite);
+      refreshControlPanel();
+    }
+
+    // Atualiza os tempos de transição
+    function updateTiming(actionKey, value) {
+      config.timings[actionKey] = parseInt(value);
+      document.getElementById(`v-t-${actionKey === 'jumpNormal' ? 'jump-normal' : actionKey === 'jumpSpecial' ? 'jump-special' : 'bump'}`).innerText = value + 'ms';
+    }
+
+    // Executa e testa as ações
+    function testAction(action) {
+      clearTimeout(sequenceTimeout);
+
+      if (action === 'run_normal') {
+        activeBuroSprite = ASSETS.buro.runNormal;
+        applySpriteStyle(buroImg, activeBuroSprite);
+      } else if (action === 'run_10s') {
+        activeBuroSprite = ASSETS.buro.run10s;
+        applySpriteStyle(buroImg, activeBuroSprite);
+      } else if (action === 'jump_normal') {
+        activeBuroSprite = ASSETS.buro.jumpNormal1;
+        applySpriteStyle(buroImg, activeBuroSprite);
+        sequenceTimeout = setTimeout(() => {
+          activeBuroSprite = ASSETS.buro.jumpNormal2;
+          applySpriteStyle(buroImg, activeBuroSprite);
+          refreshControlPanel();
+        }, config.timings.jumpNormal);
+      } else if (action === 'jump_special') {
+        activeBuroSprite = ASSETS.buro.jumpSpecial1;
+        applySpriteStyle(buroImg, activeBuroSprite);
+        sequenceTimeout = setTimeout(() => {
+          activeBuroSprite = ASSETS.buro.jumpSpecial2;
+          applySpriteStyle(buroImg, activeBuroSprite);
+          refreshControlPanel();
+        }, config.timings.jumpSpecial);
+      } else if (action === 'bump') {
+        activeBuroSprite = ASSETS.buro.bump1;
+        applySpriteStyle(buroImg, activeBuroSprite);
+        sequenceTimeout = setTimeout(() => {
+          activeBuroSprite = ASSETS.buro.bump2;
+          applySpriteStyle(buroImg, activeBuroSprite);
+          refreshControlPanel();
+        }, config.timings.bump);
+      } else if (action === 'victory') {
+        activeBuroSprite = ASSETS.buro.victory;
+        applySpriteStyle(buroImg, activeBuroSprite);
+      } else if (action === 'defeat') {
+        activeBuroSprite = ASSETS.buro.defeat;
+        applySpriteStyle(buroImg, activeBuroSprite);
+      } else if (action === 'menu') {
+        activeBuroSprite = ASSETS.buro.menu;
+        applySpriteStyle(buroImg, activeBuroSprite);
+      }
+
+      refreshControlPanel();
+    }
+
+    // Copia as configurações calibradas para a área de transferência
+    function exportConfig() {
+      const output = JSON.stringify(config, null, 2);
+      navigator.clipboard.writeText(output);
+      alert('Configurações de Proporção e Tempos copiadas para a área de transferência!');
+    }
+
+    // Inicialização
+    applySpriteStyle(buroImg, activeBuroSprite);
+    applySpriteStyle(enemyImg, ASSETS.enemy.walk);
+    refreshControlPanel();
+  </script>
 </body>
 </html>
