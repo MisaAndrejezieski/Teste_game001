@@ -114,8 +114,7 @@ class RunnerGame:
         self.font = pygame.font.Font(None, 32)
         self.big_font = pygame.font.Font(None, 72)
 
-        # Camadas de paralaxe: [(surface, y_destino, velocidade), ...]
-        self.parallax_layers = self.load_parallax_layers()
+        self.background = self.load_background()
 
         self.nora_animations = self.load_action_set(
             config.NORA_ACTIONS, scale=config.NORA_SCALE
@@ -139,58 +138,34 @@ class RunnerGame:
 
     # ---------- CARREGAMENTO ----------
 
-    def load_parallax_layers(self) -> list[tuple[pygame.Surface, int, float]]:
-        """
-        Divide o cenario004.jpg em faixas horizontais e monta
-        cada faixa como uma camada de paralaxe.
+    def load_background(self) -> pygame.Surface | None:
+        path = config.ASSET_DIR / config.BACKGROUND
+        try:
+            image = pygame.image.load(str(path)).convert()
+        except pygame.error:
+            return None
 
-        Retorna lista de (surface_da_faixa, y_destino_na_tela, velocidade).
-        """
-        layers: list[tuple[pygame.Surface, int, float]] = []
+        img_w, img_h = image.get_size()
+        target_w, target_h = config.WIDTH, config.HEIGHT
 
-        # Cache das imagens já carregadas (caso a mesma imagem seja
-        # usada em várias faixas, evitamos recarregar)
-        cache: dict[str, pygame.Surface] = {}
-
-        for filename, y_start_pct, y_end_pct, speed in config.SCENERY:
-            path = config.ASSET_DIR / filename
-
-            # Carrega imagem original (ou pega do cache)
-            if filename not in cache:
-                try:
-                    cache[filename] = pygame.image.load(str(path)).convert()
-                except pygame.error:
-                    continue
-            original = cache[filename]
-
-            img_w, img_h = original.get_size()
-
-            # Calcula a faixa horizontal (em pixels) a recortar
-            y_start_px = int(img_h * y_start_pct)
-            y_end_px = int(img_h * y_end_pct)
-            band_h = y_end_px - y_start_px
-            if band_h <= 0:
-                continue
-
-            # Recorta a faixa
-            band = original.subsurface(
-                pygame.Rect(0, y_start_px, img_w, band_h)
+        # Imagem maior que a tela → crop centralizado (sem distorção)
+        if img_w >= target_w and img_h >= target_h:
+            crop_x = (img_w - target_w) // 2
+            crop_y = (img_h - target_h) // 2
+            return image.subsurface(
+                pygame.Rect(crop_x, crop_y, target_w, target_h)
             ).copy()
 
-            # Ajusta a largura para preencher a tela mantendo a
-            # proporção da faixa (para não esticar)
-            scale_factor = config.WIDTH / img_w
-            new_w = config.WIDTH
-            new_h = max(1, int(band_h * scale_factor))
-            band = pygame.transform.smoothscale(band, (new_w, new_h))
+        # Imagem menor → redimensiona mantendo proporção e centraliza
+        scale_factor = min(target_w / img_w, target_h / img_h)
+        new_w = int(img_w * scale_factor)
+        new_h = int(img_h * scale_factor)
+        image = pygame.transform.smoothscale(image, (new_w, new_h))
 
-            # Calcula onde essa faixa vai ser desenhada na tela
-            # (o topo de cada faixa na tela)
-            y_dest = int(config.HEIGHT * y_start_pct)
-
-            layers.append((band, y_dest, speed))
-
-        return layers
+        canvas = pygame.Surface((target_w, target_h))
+        canvas.fill((135, 198, 235))
+        canvas.blit(image, ((target_w - new_w) // 2, (target_h - new_h) // 2))
+        return canvas
 
     def load_action_set(
         self,
@@ -356,16 +331,12 @@ class RunnerGame:
     def draw(self) -> None:
         self.screen.fill((135, 198, 235))
 
-        # Paralaxe real: cada faixa rola em velocidade própria
-        for band_surface, y_dest, speed in self.parallax_layers:
-            band_w = band_surface.get_width()
-            offset = int(-self.scroll * speed) % band_w
+        if self.background is not None:
+            bg_w = self.background.get_width()
+            offset = int(-self.scroll) % bg_w
+            self.screen.blit(self.background, (offset - bg_w, 0))
+            self.screen.blit(self.background, (offset, 0))
 
-            # Desenha duas vezes para criar o loop infinito
-            self.screen.blit(band_surface, (offset - band_w, y_dest))
-            self.screen.blit(band_surface, (offset, y_dest))
-
-        # Nora
         nora_anim = (
             self.nora_animations.get(self.player.action)
             or self.nora_animations.get("run")
@@ -376,14 +347,12 @@ class RunnerGame:
                 (int(self.player.x), config.GROUND_Y - int(self.player.y)),
             )
 
-        # Inimigos
         for enemy in self.enemies:
             enemy.animation.draw(
                 self.screen,
                 (int(enemy.x), config.GROUND_Y),
             )
 
-        # HUD
         hud = self.font.render(
             f"Nora  |  Vidas: {self.lives}  |  Pontos: {int(self.score)}",
             True,
@@ -391,7 +360,6 @@ class RunnerGame:
         )
         self.screen.blit(hud, (20, 20))
 
-        # Game Over
         if self.game_over:
             title = self.big_font.render("GAME OVER", True, (255, 80, 100))
             hint = self.font.render(

@@ -58,35 +58,14 @@ NORA_ACTIONS = {
 # =============================================================
 
 ENEMY_ACTIONS = {
-    "run":  "inim004.gif",
+    "run":  "inimiga_caminha.gif",
     "bump": "inimiga_esbarra_na_principal.gif",
 }
 
 
 # =============================================================
-# CENÁRIO — PARALAXE REAL A PARTIR DE UMA ÚNICA IMAGEM
+# CENÁRIO
 # =============================================================
-# O cenario004.jpg é CORTADO em 3 faixas horizontais.
-# Cada faixa vira uma "camada" independente, rolando em
-# velocidade própria. Isso cria paralaxe de verdade com
-# uma imagem só.
-#
-# Estrutura de cada tupla:
-#   (arquivo, y_inicio_%, y_fim_%, velocidade_relativa)
-#
-# y_inicio_% e y_fim_% são em FRAÇÃO da altura da imagem (0.0 a 1.0)
-# Ex:
-#   (0.00, 0.40) → do topo até 40% da altura
-#   (0.40, 0.75) → de 40% até 75% da altura
-#   (0.75, 1.00) → de 75% até o fim
+# Cenário único rolando horizontalmente, em loop infinito.
 
-SCENERY = [
-    # Céu + montanhas distantes — rola devagar (parece longe)
-    ("cenario004.jpg", 0.00, 0.40, 0.15),
-
-    # Árvores, casas, torii — rola em velocidade média
-    ("cenario004.jpg", 0.40, 0.75, 0.45),
-
-    # Chão, grama, pedras — rola rápido (parece perto)
-    ("cenario004.jpg", 0.75, 1.00, 1.00),
-]
+BACKGROUND = "cenario004.jpg"
