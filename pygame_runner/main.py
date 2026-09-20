@@ -34,15 +34,12 @@ class AnimatedImage:
                 surface = pygame.image.fromstring(
                     rgba.tobytes(), rgba.size, "RGBA"
                 ).convert_alpha()
-
                 if self.scale != 1.0:
                     w = max(1, int(surface.width * self.scale))
                     h = max(1, int(surface.height * self.scale))
                     surface = pygame.transform.smoothscale(surface, (w, h))
-
                 if self.flip:
                     surface = pygame.transform.flip(surface, True, False)
-
                 self.frames.append(surface)
                 self.durations.append(max(30, frame.info.get("duration", 100)))
         except (FileNotFoundError, OSError):
@@ -102,6 +99,15 @@ class Player:
 
 
 # =============================================================
+# ESTADO DA APLICAÇÃO
+# =============================================================
+
+STATE_MENU = "menu"
+STATE_PLAYING = "playing"
+STATE_GAME_OVER = "game_over"
+
+
+# =============================================================
 # JOGO
 # =============================================================
 
@@ -113,6 +119,7 @@ class RunnerGame:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 32)
         self.big_font = pygame.font.Font(None, 72)
+        self.huge_font = pygame.font.Font(None, 96)
 
         self.background = self.load_background()
 
@@ -123,18 +130,24 @@ class RunnerGame:
             config.ENEMY_ACTIONS, scale=config.ENEMY_SCALE, flip=True
         )
 
-        self.player = Player(
-            x=config.PLAYER_X,
-            animations=self.nora_animations,
-        )
+        self.state = STATE_MENU
 
+        # Configs do menu
+        self.speed_multiplier = 1.0
+        self.enemy_count_total = 15
+
+        # Estado de jogo (inicializado no start_game)
+        self.player: Player | None = None
         self.enemies: list[Enemy] = []
         self.lives = config.MAX_LIVES
         self.score = 0.0
         self.scroll = 0.0
-        self.spawn_timer = config.SPAWN_INTERVAL
+        self.spawn_timer = 0.0
         self.damage_timer = 0.0
+        self.enemies_spawned = 0
+        self.enemies_passed = 0
         self.game_over = False
+        self.won = False
 
     # ---------- CARREGAMENTO ----------
 
@@ -180,9 +193,9 @@ class RunnerGame:
             for name, filename in actions.items()
         }
 
-    # ---------- RESET / CLOSE ----------
+    # ---------- TRANSIÇÕES ----------
 
-    def reset(self) -> None:
+    def start_game(self) -> None:
         self.player = Player(
             x=config.PLAYER_X,
             animations=self.nora_animations,
@@ -191,9 +204,16 @@ class RunnerGame:
         self.lives = config.MAX_LIVES
         self.score = 0.0
         self.scroll = 0.0
-        self.spawn_timer = config.SPAWN_INTERVAL
+        self.spawn_timer = 0.5
         self.damage_timer = 0.0
+        self.enemies_spawned = 0
+        self.enemies_passed = 0
         self.game_over = False
+        self.won = False
+        self.state = STATE_PLAYING
+
+    def back_to_menu(self) -> None:
+        self.state = STATE_MENU
 
     def close(self) -> None:
         pygame.quit()
@@ -208,24 +228,139 @@ class RunnerGame:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key in (pygame.K_SPACE, pygame.K_UP) and not self.game_over:
-                        self.player.jump(config.JUMP_SPEED)
-                    elif event.key == pygame.K_r and self.game_over:
-                        self.reset()
-                    elif event.key == pygame.K_ESCAPE:
-                        running = False
+                else:
+                    self.handle_event(event)
 
-            self.update(dt)
-            self.draw()
+            if self.state == STATE_MENU:
+                self.update_menu(dt)
+                self.draw_menu()
+            elif self.state == STATE_PLAYING:
+                self.update(dt)
+                self.draw()
+            elif self.state == STATE_GAME_OVER:
+                self.update(dt)
+                self.draw()
 
         self.close()
         sys.exit()
 
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type != pygame.KEYDOWN:
+            return
+
+        if self.state == STATE_MENU:
+            if event.key == pygame.K_UP:
+                self.speed_multiplier = min(
+                    config.SPEED_MAX,
+                    round(self.speed_multiplier + config.SPEED_STEP, 2),
+                )
+            elif event.key == pygame.K_DOWN:
+                self.speed_multiplier = max(
+                    config.SPEED_MIN,
+                    round(self.speed_multiplier - config.SPEED_STEP, 2),
+                )
+            elif event.key == pygame.K_RIGHT:
+                self.enemy_count_total = min(
+                    config.ENEMY_COUNT_MAX,
+                    self.enemy_count_total + 5,
+                )
+            elif event.key == pygame.K_LEFT:
+                self.enemy_count_total = max(
+                    config.ENEMY_COUNT_MIN,
+                    self.enemy_count_total - 5,
+                )
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self.start_game()
+            elif event.key == pygame.K_ESCAPE:
+                pygame.event.post(pygame.event.Event(pygame.QUIT))
+
+        elif self.state == STATE_PLAYING:
+            if event.key in (pygame.K_SPACE, pygame.K_UP) and self.player:
+                self.player.jump(config.JUMP_SPEED)
+            elif event.key == pygame.K_ESCAPE:
+                self.back_to_menu()
+
+        elif self.state == STATE_GAME_OVER:
+            if event.key == pygame.K_r:
+                self.start_game()
+            elif event.key == pygame.K_ESCAPE:
+                self.back_to_menu()
+
+    # ---------- MENU ----------
+
+    def update_menu(self, dt: float) -> None:
+        self.scroll += config.WORLD_SPEED * dt
+
+    def draw_menu(self) -> None:
+        # Fundo
+        if self.background is not None:
+            bg_w = self.background.get_width()
+            offset = int(-self.scroll) % bg_w
+            self.screen.blit(self.background, (offset - bg_w, 0))
+            self.screen.blit(self.background, (offset, 0))
+        else:
+            self.screen.fill((135, 198, 235))
+
+        # Escurece o fundo
+        overlay = pygame.Surface((config.WIDTH, config.HEIGHT))
+        overlay.set_alpha(160)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
+
+        # Título
+        title = self.huge_font.render("NORA RUNNER", True, (255, 80, 140))
+        self.screen.blit(
+            title, title.get_rect(center=(config.WIDTH // 2, 120))
+        )
+
+        # Velocidade
+        speed_txt = self.font.render(
+            f"Velocidade: {self.speed_multiplier:.2f}x", True, (255, 255, 255)
+        )
+        self.screen.blit(
+            speed_txt, speed_txt.get_rect(center=(config.WIDTH // 2, 260))
+        )
+        speed_hint = self.font.render(
+            "↑ / ↓ para ajustar", True, (180, 180, 180)
+        )
+        self.screen.blit(
+            speed_hint, speed_hint.get_rect(center=(config.WIDTH // 2, 295))
+        )
+
+        # Número de inimigas
+        count_txt = self.font.render(
+            f"Inimigas: {self.enemy_count_total}", True, (255, 255, 255)
+        )
+        self.screen.blit(
+            count_txt, count_txt.get_rect(center=(config.WIDTH // 2, 360))
+        )
+        count_hint = self.font.render(
+            "← / → para ajustar", True, (180, 180, 180)
+        )
+        self.screen.blit(
+            count_hint, count_hint.get_rect(center=(config.WIDTH // 2, 395))
+        )
+
+        # Botão / dica de início
+        start_txt = self.font.render(
+            "Pressione ENTER ou ESPAÇO para começar", True, (120, 255, 160)
+        )
+        self.screen.blit(
+            start_txt, start_txt.get_rect(center=(config.WIDTH // 2, 480))
+        )
+        exit_txt = self.font.render(
+            "ESC para sair", True, (180, 180, 180)
+        )
+        self.screen.blit(
+            exit_txt, exit_txt.get_rect(center=(config.WIDTH // 2, 520))
+        )
+
+        pygame.display.flip()
+
     # ---------- UPDATE ----------
 
     def update(self, dt: float) -> None:
-        if not self.game_over:
+        if self.state == STATE_PLAYING and not self.game_over:
             self._update_world(dt)
             self._update_player(dt)
             self._update_enemies(dt)
@@ -234,22 +369,29 @@ class RunnerGame:
         self._update_animations(dt)
 
     def _update_world(self, dt: float) -> None:
+        speed = config.WORLD_SPEED * self.speed_multiplier
+
         self.damage_timer = max(0.0, self.damage_timer - dt)
         self.score += dt * 10
-        self.scroll += config.WORLD_SPEED * dt
+        self.scroll += speed * dt
 
-        self.spawn_timer -= dt
-        if self.spawn_timer <= 0:
-            self.spawn_timer = config.SPAWN_INTERVAL
-            self.enemies.append(
-                Enemy(
-                    x=config.WIDTH + 80,
-                    animation=self.enemy_animations["run"],
+        # Só spawna enquanto ainda restam inimigas a aparecer
+        if self.enemies_spawned < self.enemy_count_total:
+            self.spawn_timer -= dt
+            if self.spawn_timer <= 0:
+                self.spawn_timer = config.SPAWN_INTERVAL
+                self.enemies.append(
+                    Enemy(
+                        x=config.WIDTH + 80,
+                        animation=self.enemy_animations["run"],
+                    )
                 )
-            )
+                self.enemies_spawned += 1
 
     def _update_player(self, dt: float) -> None:
         p = self.player
+        if p is None:
+            return
 
         if not p.on_ground:
             p.vy += config.GRAVITY * dt
@@ -269,18 +411,42 @@ class RunnerGame:
             p.action = "run"
 
     def _update_enemies(self, dt: float) -> None:
+        enemy_speed = config.ENEMY_SPEED * self.speed_multiplier
+
         for enemy in self.enemies:
-            # Inimiga vem em direção à Nora na velocidade própria dela
-            enemy.x -= config.ENEMY_SPEED * dt
+            enemy.x -= enemy_speed * dt
             enemy.hit_timer = max(0.0, enemy.hit_timer - dt)
             if enemy.hit_timer <= 0 and enemy.action != "run":
                 enemy.action = "run"
                 enemy.animation = self.enemy_animations["run"]
 
-        self.enemies = [e for e in self.enemies if e.x > -200]
+        # Conta quem passou pela Nora (x < PLAYER_X) e remove os que saíram
+        still_alive: list[Enemy] = []
+        for enemy in self.enemies:
+            if enemy.x < config.PLAYER_X and not getattr(enemy, "_counted", False):
+                self.enemies_passed += 1
+                enemy._counted = True
+
+            if enemy.x > -200:
+                still_alive.append(enemy)
+
+        self.enemies = still_alive
+
+        # Vitória: passou por todas as inimigas e elas já foram removidas
+        if (
+            self.enemies_spawned >= self.enemy_count_total
+            and self.enemies_passed >= self.enemy_count_total
+            and len(self.enemies) == 0
+            and not self.game_over
+        ):
+            self.won = True
+            self.game_over = True
+            self.state = STATE_GAME_OVER
 
     def _check_collisions(self) -> None:
         if self.damage_timer > 0:
+            return
+        if self.player is None:
             return
 
         player_rect = self._player_rect()
@@ -299,6 +465,7 @@ class RunnerGame:
                 if self.lives <= 0:
                     self.player.action = "defeat"
                     self.game_over = True
+                    self.state = STATE_GAME_OVER
                 break
 
     def _player_rect(self) -> pygame.Rect:
@@ -306,15 +473,18 @@ class RunnerGame:
             self.nora_animations.get(self.player.action)
             or self.nora_animations.get("run")
         )
-        w = int(anim.width * 0.55)
-        h = int(anim.height * 0.85)
+        # Hitbox justa: 45% da largura, 80% da altura.
+        # Ajustado para NÃO antecipar a colisão.
+        w = int(anim.width * 0.45)
+        h = int(anim.height * 0.80)
         cx = self.player.x
         feet_y = config.GROUND_Y - int(self.player.y)
         return pygame.Rect(cx - w // 2, feet_y - h, w, h)
 
     def _enemy_rect(self, enemy: Enemy) -> pygame.Rect:
-        w = int(enemy.animation.width * 0.55)
-        h = int(enemy.animation.height * 0.85)
+        # Mesma lógica para a inimiga: 45% / 80%
+        w = int(enemy.animation.width * 0.45)
+        h = int(enemy.animation.height * 0.80)
         cx = int(enemy.x)
         return pygame.Rect(cx - w // 2, config.GROUND_Y - h, w, h)
 
@@ -328,23 +498,24 @@ class RunnerGame:
     # ---------- DRAW ----------
 
     def draw(self) -> None:
-        self.screen.fill((135, 198, 235))
-
         if self.background is not None:
             bg_w = self.background.get_width()
             offset = int(-self.scroll) % bg_w
             self.screen.blit(self.background, (offset - bg_w, 0))
             self.screen.blit(self.background, (offset, 0))
+        else:
+            self.screen.fill((135, 198, 235))
 
-        nora_anim = (
-            self.nora_animations.get(self.player.action)
-            or self.nora_animations.get("run")
-        )
-        if nora_anim:
-            nora_anim.draw(
-                self.screen,
-                (int(self.player.x), config.GROUND_Y - int(self.player.y)),
+        if self.player is not None:
+            nora_anim = (
+                self.nora_animations.get(self.player.action)
+                or self.nora_animations.get("run")
             )
+            if nora_anim:
+                nora_anim.draw(
+                    self.screen,
+                    (int(self.player.x), config.GROUND_Y - int(self.player.y)),
+                )
 
         for enemy in self.enemies:
             enemy.animation.draw(
@@ -353,16 +524,21 @@ class RunnerGame:
             )
 
         hud = self.font.render(
-            f"Nora  |  Vidas: {self.lives}  |  Pontos: {int(self.score)}",
+            f"Nora  |  Vidas: {self.lives}  |  Pontos: {int(self.score)}  "
+            f"|  Inimigas: {self.enemies_passed}/{self.enemy_count_total}",
             True,
             (255, 255, 255),
         )
         self.screen.blit(hud, (20, 20))
 
-        if self.game_over:
-            title = self.big_font.render("GAME OVER", True, (255, 80, 100))
+        if self.state == STATE_GAME_OVER:
+            if self.won:
+                title = self.big_font.render("VOCÊ VENCEU!", True, (120, 255, 160))
+            else:
+                title = self.big_font.render("GAME OVER", True, (255, 80, 100))
+
             hint = self.font.render(
-                "Pressione R para reiniciar ou Esc para sair",
+                "Pressione R para reiniciar ou Esc para o menu",
                 True,
                 (255, 255, 255),
             )
