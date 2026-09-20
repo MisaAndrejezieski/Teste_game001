@@ -16,7 +16,6 @@ FPS = 60
 
 # --- Leitor de GIFs via PIL ---
 def carregar_gif(caminho_arquivo, escala=1.0):
-    """Carrega todos os frames de um GIF da pasta images/ e converte para Pygame."""
     try:
         pil_img = Image.open(caminho_arquivo)
     except Exception as e:
@@ -48,7 +47,6 @@ def carregar_gif(caminho_arquivo, escala=1.0):
 
 
 class AnimacaoGIF:
-    """Classe para gerir a reprodução dos frames do GIF."""
     def __init__(self, frames, fps=12):
         self.frames = frames
         self.fps = fps
@@ -68,15 +66,23 @@ class AnimacaoGIF:
         return self.frames[self.frame_atual]
 
 
-# --- Carregamento das Imagens/GIFs na pasta images/ ---
+# --- Carregamento de Animações ---
 GIFS = {
     "INICIAL": AnimacaoGIF(carregar_gif("images/muse-dash-buro.gif", escala=0.6), fps=10),
     "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=12),
     "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=12),
-    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro003.gif", escala=0.5), fps=12),
-    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marija.gif", escala=0.5), fps=10),
+    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro008.gif", escala=0.5), fps=12),
+    "TROPECO": AnimacaoGIF(carregar_gif("images/muse-dash-buro007.gif", escala=0.5), fps=10),
+    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marij a.gif", escala=0.5), fps=10),
     "VITORIA": AnimacaoGIF(carregar_gif("images/muse-dash-buro004.gif", escala=0.5), fps=10),
 }
+
+# --- GIFs das Inimigas ---
+INIMIGAS_GIFS = [
+    lambda: AnimacaoGIF(carregar_gif("images/inimiga_no_lugar 001.gif", escala=0.4), fps=10),
+    lambda: AnimacaoGIF(carregar_gif("images/inimiga_no_lugar 002.gif", escala=0.4), fps=10),
+    lambda: AnimacaoGIF(carregar_gif("images/inimiga_no_lugar 003.gif", escala=0.4), fps=10),
+]
 
 # --- Fontes e Cores ---
 FONTE_TITULO = pygame.font.SysFont("arial", 28, bold=True)
@@ -85,41 +91,59 @@ FONTE_SUB = pygame.font.SysFont("arial", 18)
 COR_FUNDO = (25, 20, 35)
 COR_CHAO = (180, 80, 120)
 COR_TEXTO = (255, 240, 250)
-COR_OBSTACULO = (220, 50, 90)
 
-# --- Variáveis de Física do Runner ---
+# --- Física do Runner ---
 CHAO_Y = ALTURA - 80
 GRAVIDADE = 1200.0
 FORCA_PULO = -500.0
 
-# --- Estado Inicial do Jogo ---
+# --- Classe das Inimigas ---
+class Inimiga:
+    def __init__(self, x, y):
+        gerador = random.choice(INIMIGAS_GIFS)
+        self.anim = gerador()
+        self.rect = pygame.Rect(x, y - 70, 50, 70)
+        self.atingida = False
+
+    def atualizar(self, dt, velocidade):
+        self.rect.x -= int(velocidade * dt)
+        self.anim.atualizar(dt)
+
+    def desenhar(self, tela):
+        frame = self.anim.obter_frame()
+        rect_img = frame.get_rect(midbottom=self.rect.midbottom)
+        tela.blit(frame, rect_img)
+
+
+# --- Estado do Jogo ---
 estado_jogo = "TELA_INICIAL"
 tempo_corrida = 0.0
 tempo_morte = 0.0
+tempo_tropeco = 0.0
 
 pos_x, pos_y = 120, CHAO_Y
 vel_y = 0.0
 no_chao = True
 
-obstaculos = []
+inimigas = []
 tempo_spawn = 0.0
 VELOCIDADE_CENARIO = 350.0
 
 def resetar_jogo():
-    global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, obstaculos, estado_jogo
+    global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, tempo_tropeco, inimigas, estado_jogo
     pos_x, pos_y = 120, CHAO_Y
     vel_y = 0.0
     no_chao = True
     tempo_corrida = 0.0
     tempo_morte = 0.0
-    obstaculos.clear()
+    tempo_tropeco = 0.0
+    inimigas.clear()
     estado_jogo = "JOGANDO"
 
 # --- Loop Principal ---
 while True:
     dt = RELOGIO.tick(FPS) / 1000.0
 
-    # Processamento de Eventos
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -134,12 +158,16 @@ while True:
             elif estado_jogo == "MENU_REINICIAR":
                 resetar_jogo()
 
-    # --- Atualização do Estado do Jogo ---
+    # --- Atualização do Jogo ---
     if estado_jogo == "TELA_INICIAL":
         GIFS["INICIAL"].atualizar(dt)
 
     elif estado_jogo == "JOGANDO":
         tempo_corrida += dt
+
+        # Controle de Tropeço
+        if tempo_tropeco > 0:
+            tempo_tropeco -= dt
 
         # Física do Pulo
         vel_y += GRAVIDADE * dt
@@ -150,25 +178,39 @@ while True:
             vel_y = 0.0
             no_chao = True
 
-        # Gerenciamento de Obstáculos
+        # Spawning de Inimigas
         tempo_spawn += dt
-        if tempo_spawn >= random.uniform(1.5, 2.5):
+        if tempo_spawn >= random.uniform(1.8, 3.0):
             tempo_spawn = 0.0
-            obstaculos.append(pygame.Rect(LARGURA + 20, CHAO_Y - 40, 30, 40))
+            inimigas.append(Inimiga(LARGURA + 20, CHAO_Y))
 
-        # Movimento e Colisão
-        rect_jogador = pygame.Rect(pos_x - 30, pos_y - 60, 60, 60)
-        for obs in obstaculos[:]:
-            obs.x -= int(VELOCIDADE_CENARIO * dt)
-            if obs.x < -50:
-                obstaculos.remove(obs)
+        # Atualização de Inimigas e Colisão
+        rect_jogador = pygame.Rect(pos_x - 25, pos_y - 65, 50, 65)
 
-            if rect_jogador.colliderect(obs):
-                estado_jogo = "MORTO"
-                tempo_morte = 0.0
+        for ini in inimigas[:]:
+            ini.atualizar(dt, VELOCIDADE_CENARIO)
 
-        # Seleção da Animação
-        if not no_chao:
+            if ini.rect.right < 0:
+                inimigas.remove(ini)
+                continue
+
+            if not ini.atingida and rect_jogador.colliderect(ini.rect):
+                # Calculo da profundidade da colisão para definir leve x fatal
+                intersecao = rect_jogador.clip(ini.rect)
+                
+                # Colisão leve (raspão na borda traseira)
+                if intersecao.width < 18 and rect_jogador.centerx < ini.rect.centerx:
+                    tempo_tropeco = 1.0
+                    ini.atingida = True
+                else:
+                    # Colisão frontal direta -> Morte
+                    estado_jogo = "MORTO"
+                    tempo_morte = 0.0
+
+        # Seleção da Animação do Jogador
+        if tempo_tropeco > 0:
+            anim_ativa = GIFS["TROPECO"]
+        elif not no_chao:
             anim_ativa = GIFS["PULO"]
         elif tempo_corrida > 5.0:
             anim_ativa = GIFS["ANDANDO_2"]
@@ -198,11 +240,15 @@ while True:
     elif estado_jogo in ("JOGANDO", "MORTO", "MENU_REINICIAR"):
         pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y, LARGURA, ALTURA - CHAO_Y))
 
-        for obs in obstaculos:
-            pygame.draw.rect(TELA, COR_OBSTACULO, obs, border_radius=6)
+        # Desenha as inimigas
+        for ini in inimigas:
+            ini.desenhar(TELA)
 
+        # Desenha o Jogador
         if estado_jogo in ("MORTO", "MENU_REINICIAR"):
             frame = GIFS["MORTE"].obter_frame()
+        elif tempo_tropeco > 0:
+            frame = GIFS["TROPECO"].obter_frame()
         elif not no_chao:
             frame = GIFS["PULO"].obter_frame()
         elif tempo_corrida > 5.0:
