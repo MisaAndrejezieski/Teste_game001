@@ -2,77 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Runner Infinite - Muse Dash Edition</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #191423;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-
-    #gameArea {
-      position: relative;
-      width: 960px;
-      height: 540px;
-      background-color: #191423;
-      border: 2px solid #b45078;
-      box-shadow: 0 0 20px rgba(180, 80, 120, 0.4);
-      overflow: hidden;
-    }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 10;
-    }
-
-    .sprite {
-      position: absolute;
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    /* Tamanho padrão do sprite da Buro */
-    #buroSprite {
-      width: 105px;
-      height: 105px;
-      object-fit: contain;
-      transform: translate(-50%, -100%);
-      transition: opacity 0.2s ease;
-    }
-
-    /* Ajuste específico para a forma Fantasma de Morte (proporcional e levemente opaca) */
-    #buroSprite.morte {
-      width: 140px;
-      height: 140px;
-      opacity: 0.85; /* Efeito fantasmagórico */
-    }
-
-    .inimigaSprite {
-      width: 65px;
-      height: 65px;
-      object-fit: contain;
-      transform: scaleX(-1) translate(50%, -100%);
-    }
-
-    #menuSprite {
-      position: absolute;
-      left: 50%;
-      top: 45%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      object-fit: contain;
-      z-index: 5;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
