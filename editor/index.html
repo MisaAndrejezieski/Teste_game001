@@ -8,19 +8,23 @@
 </head>
 <body>
 
-  <!-- Palco / Preview -->
   <div id="game-stage" class="mode-runner">
+    <div id="parallax-stage">
+      <div class="parallax-layer" data-layer="0"></div>
+      <div class="parallax-layer" data-layer="1"></div>
+      <div class="parallax-layer" data-layer="2"></div>
+    </div>
     <div id="background-layer"></div>
 
     <div id="fighting-ui" class="hidden">
       <div class="hp-bar-container player1">
         <span id="p1-name">P1</span>
-        <div class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
+        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
       </div>
       <div class="vs-badge">VS</div>
       <div class="hp-bar-container player2">
         <span id="p2-name">P2</span>
-        <div class="hp-bar"><div class="hp-fill" style="width: 100%;"></div></div>
+        <div class="hp-bar"><div class="hp-fill" style="width:100%;"></div></div>
       </div>
     </div>
 
@@ -28,16 +32,13 @@
     <div id="entities-container"></div>
   </div>
 
-  <!-- Painel de Controle -->
   <div id="control-panel">
     <h2>Anime Game Studio — Editor</h2>
 
-    <!-- Play -->
     <div class="control-group play-group">
       <button class="btn-action btn-green" onclick="playGame()">▶️ JOGAR (nova aba)</button>
     </div>
 
-    <!-- 1. Configurações Globais -->
     <div class="control-group">
       <h3>1. Configurações do Jogo</h3>
       <div class="field">
@@ -49,32 +50,47 @@
         <select id="game-genre">
           <option value="runner">Runner</option>
           <option value="fighting">Luta 2D</option>
-          <option value="racing">Corrida / Obstáculos</option>
         </select>
       </div>
     </div>
 
-    <!-- 2. Cenário -->
     <div class="control-group">
-      <h3>2. Cenário & Fundo</h3>
-      <div class="field">
-        <label>Imagem de Fundo:</label>
-        <select id="bg-select"></select>
-      </div>
+      <h3>2. Cenário</h3>
       <div class="field">
         <label>Modo de Exibição:</label>
         <select id="bg-mode">
-          <option value="cover">Preencher Tela (Cover)</option>
-          <option value="contain">Ajustar Proporção (Contain)</option>
-          <option value="repeat">Repetir (Pattern)</option>
+          <option value="cover">Cover</option>
+          <option value="contain">Contain</option>
+          <option value="repeat">Repeat</option>
         </select>
       </div>
+      <div class="field">
+        <label>Imagem Estática (fighting):</label>
+        <select id="bg-select"></select>
+      </div>
       <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Remover Fundo</button>
+
+      <div id="layers-block">
+        <div class="layer-row" data-idx="0">
+          <span>Fundo distante</span>
+          <select id="layer-0-img"></select>
+          <input type="number" id="layer-0-speed" step="0.1" min="0" max="5" />
+        </div>
+        <div class="layer-row" data-idx="1">
+          <span>Meio</span>
+          <select id="layer-1-img"></select>
+          <input type="number" id="layer-1-speed" step="0.1" min="0" max="5" />
+        </div>
+        <div class="layer-row" data-idx="2">
+          <span>Frente</span>
+          <select id="layer-2-img"></select>
+          <input type="number" id="layer-2-speed" step="0.1" min="0" max="5" />
+        </div>
+      </div>
     </div>
 
-    <!-- 3. Entidades -->
     <div class="control-group">
-      <h3>3. Entidades & Personagens</h3>
+      <h3>3. Entidades</h3>
       <div class="field">
         <label>Selecionar:</label>
         <select id="entity-selector"></select>
@@ -87,15 +103,14 @@
       <button class="btn-action btn-red" id="btn-delete-entity" onclick="deleteEntity()">❌ Excluir Entidade</button>
     </div>
 
-    <!-- 4. Propriedades -->
     <div class="control-group" id="group-properties">
-      <h3>4. Propriedades & Físicas</h3>
+      <h3>4. Propriedades</h3>
       <div class="field">
         <label>Papel:</label>
         <select id="prop-role">
           <option value="player">Jogador Principal</option>
           <option value="enemy">Inimigo / Obstáculo</option>
-          <option value="prop">Objeto / Cenário</option>
+          <option value="prop">Objeto</option>
         </select>
       </div>
       <div class="field">
@@ -123,10 +138,6 @@
         <input type="number" id="prop-jump" min="0" max="500" />
       </div>
       <div class="field">
-        <label>Flutuação (ms):</label>
-        <input type="number" id="prop-float" min="0" max="10000" step="100" />
-      </div>
-      <div class="field">
         <label>Escala:</label>
         <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" />
       </div>
@@ -134,40 +145,40 @@
         <label>Ajuste Chão (Y):</label>
         <input type="number" id="prop-offset-y" min="-300" max="300" />
       </div>
+      <div class="field">
+        <label>Posição X (%):</label>
+        <input type="number" id="prop-position-x" min="0" max="100" />
+      </div>
     </div>
 
-    <!-- 5. GIFs -->
     <div class="control-group" id="group-gifs">
       <h3>5. GIFs de Animação</h3>
-      <div class="field">
-        <label>Parado (idle):</label>
-        <select id="gif-idle" data-action="idle"></select>
-      </div>
-      <div class="field">
-        <label>Correr (run):</label>
-        <select id="gif-run" data-action="run"></select>
-      </div>
-      <div class="field">
-        <label>Pular (jump):</label>
-        <select id="gif-jump" data-action="jump"></select>
-      </div>
-      <div class="field">
-        <label>Ataque (attack):</label>
-        <select id="gif-attack" data-action="attack"></select>
-      </div>
-      <div class="field">
-        <label>Dano (bump):</label>
-        <select id="gif-bump" data-action="bump"></select>
-      </div>
-      <div class="field">
-        <label>Morte (defeat):</label>
-        <select id="gif-defeat" data-action="defeat"></select>
-      </div>
+      <div class="field"><label>Parado:</label><select id="gif-idle" data-action="idle"></select></div>
+      <div class="field"><label>Correr:</label><select id="gif-run" data-action="run"></select></div>
+      <div class="field"><label>Pular:</label><select id="gif-jump" data-action="jump"></select></div>
+      <div class="field"><label>Ataque:</label><select id="gif-attack" data-action="attack"></select></div>
+      <div class="field"><label>Dano:</label><select id="gif-bump" data-action="bump"></select></div>
+      <div class="field"><label>Morte:</label><select id="gif-defeat" data-action="defeat"></select></div>
     </div>
 
-    <!-- 6. Salvar / Carregar -->
     <div class="control-group">
-      <h3>6. Projeto</h3>
+      <h3>6. Regras — Runner</h3>
+      <div class="field"><label>Velocidade do Mundo:</label>
+        <input type="number" id="rule-runner-speed" min="0" max="2000" /></div>
+      <div class="field"><label>Spawn Obstáculo (ms):</label>
+        <input type="number" id="rule-runner-spawn" min="200" max="10000" step="100" /></div>
+    </div>
+
+    <div class="control-group">
+      <h3>7. Regras — Fighting</h3>
+      <div class="field"><label>HP Máximo:</label>
+        <input type="number" id="rule-fight-hp" min="10" max="9999" /></div>
+      <div class="field"><label>Dano por Golpe:</label>
+        <input type="number" id="rule-fight-dmg" min="1" max="9999" /></div>
+    </div>
+
+    <div class="control-group">
+      <h3>8. Projeto</h3>
       <button class="btn-action btn-green" onclick="saveProjectAs()">💾 Salvar Versão</button>
       <button class="btn-action btn-blue" onclick="exportGame()">⬇️ Exportar .json</button>
       <input type="file" id="import-file" accept=".json" style="display:none;" />
@@ -175,22 +186,16 @@
       <button class="btn-action btn-red" onclick="resetProject()">🔥 Novo Projeto</button>
     </div>
 
-    <!-- 7. Versões Salvas -->
     <div class="control-group">
-      <h3>7. Versões Salvas</h3>
-      <div class="field">
-        <label>Carregar:</label>
-        <select id="project-list"></select>
-      </div>
+      <h3>9. Versões Salvas</h3>
+      <div class="field"><label>Carregar:</label><select id="project-list"></select></div>
       <button class="btn-action btn-blue" onclick="loadSelectedProject()">📥 Carregar Versão</button>
       <button class="btn-action btn-red" onclick="deleteSelectedProject()">🗑️ Apagar Versão</button>
     </div>
   </div>
 
-  <!-- Camada compartilhada -->
   <script src="../shared/schema.js"></script>
   <script src="../shared/storage.js"></script>
-  <!-- Lógica do editor -->
   <script src="editor.js"></script>
 </body>
 </html>
