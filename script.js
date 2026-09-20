@@ -1,8 +1,8 @@
-// Estrutura Principal do Projeto do Jogo
+// Estrutura Principal do Projeto do Jogo com os Dados Anteriores Preservados
 let gameObject = {
   meta: {
-    title: "Meu Jogo Anime",
-    genre: "runner", // 'runner', 'fighting', 'racing'
+    title: "Slot Anime Runner",
+    genre: "runner",
     version: "1.0.0"
   },
   entities: {
@@ -17,7 +17,7 @@ let gameObject = {
       floatTime: 800,
       scale: 0.9,
       offsetY: -60,
-      positionX: 20, // Porcentagem da tela
+      positionX: 20,
       gifs: {
         idle: "images/muse-dash-buro_tela principal.gif",
         run: "images/muse-dash-buro_anda_normal.gif",
@@ -38,7 +38,7 @@ let gameObject = {
       floatTime: 0,
       scale: 0.35,
       offsetY: -150,
-      positionX: 80,
+      positionX: 75,
       gifs: {
         idle: "images/inimiga_caminha.gif",
         run: "images/inimiga_caminha.gif",
@@ -59,12 +59,10 @@ function init() {
   renderStage();
 }
 
-// Atualiza metadados globais do jogo
 function updateGameMeta(key, value) {
   gameObject.meta[key] = value;
 }
 
-// Renderiza todas as entidades no palco de preview
 function renderStage() {
   const container = document.getElementById('entities-container');
   container.innerHTML = '';
@@ -117,13 +115,8 @@ function loadEntityPanelData() {
   document.getElementById('prop-speed').value = ent.speed;
   document.getElementById('prop-jump').value = ent.jumpHeight;
   document.getElementById('prop-float').value = ent.floatTime;
-
-  document.getElementById('gif-idle').value = ent.gifs.idle || '';
-  document.getElementById('gif-run').value = ent.gifs.run || '';
-  document.getElementById('gif-jump').value = ent.gifs.jump || '';
-  document.getElementById('gif-attack').value = ent.gifs.attack || '';
-  document.getElementById('gif-bump').value = ent.gifs.bump || '';
-  document.getElementById('gif-defeat').value = ent.gifs.defeat || '';
+  document.getElementById('prop-scale').value = ent.scale || 1;
+  document.getElementById('prop-offset-y').value = ent.offsetY || 0;
 }
 
 function createEntity() {
@@ -165,15 +158,17 @@ function updateEntityProp(prop, value) {
   }
 }
 
-function updateEntityGif(action, value) {
+// Faz o upload do arquivo do PC e gera URL temporária para exibição no palco
+function uploadEntityGif(action, file) {
+  if (!file) return;
   const ent = gameObject.entities[selectedEntityId];
   if (ent) {
-    ent.gifs[action] = value;
+    const objectUrl = URL.createObjectURL(file);
+    ent.gifs[action] = objectUrl;
     renderStage();
   }
 }
 
-// Download do arquivo de projeto do jogo (.json)
 function downloadGameFile() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameObject, null, 2));
   const downloadAnchor = document.createElement('a');
@@ -184,7 +179,6 @@ function downloadGameFile() {
   downloadAnchor.remove();
 }
 
-// Carregar um arquivo de jogo (.json) do seu computador
 function loadGameFile(event) {
   const fileReader = new FileReader();
   fileReader.onload = function(e) {
