@@ -1,26 +1,33 @@
+import os
 import random
 import sys
 
 import pygame
 from PIL import Image
 
+# --- Inicialização ---
 pygame.init()
+pygame.display.init()
 
-# --- Configurações da Janela ---
 LARGURA, ALTURA = 960, 540
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Runner Infinite - Muse Dash Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Otimização: Carregador e Otimizador de GIFs ---
-def carregar_gif_otimizado(caminho_arquivo, escala=1.0, inverter_x=False):
-    """Carrega o GIF, escala e converte para o formato nativo da GPU/PyGame uma única vez."""
+# --- Carregador de GIFs ---
+def carregar_gif_leve(caminho_arquivo, escala=1.0, inverter_x=False):
+    if not os.path.exists(caminho_arquivo):
+        print(f"Aviso: Arquivo {caminho_arquivo} não encontrado!")
+        surf = pygame.Surface((30, 30))
+        surf.fill((255, 105, 180))
+        return [surf.convert_alpha()]
+
     try:
         pil_img = Image.open(caminho_arquivo)
     except Exception as e:
-        print(f"Erro ao carregar {caminho_arquivo}: {e}")
-        surf = pygame.Surface((50, 50))
+        print(f"Erro ao abrir {caminho_arquivo}: {e}")
+        surf = pygame.Surface((30, 30))
         surf.fill((255, 105, 180))
         return [surf.convert_alpha()]
 
@@ -31,7 +38,6 @@ def carregar_gif_otimizado(caminho_arquivo, escala=1.0, inverter_x=False):
             largura, altura = frame_rgba.size
             dados = frame_rgba.tobytes()
             
-            # Converte para PyGame Surface
             surf = pygame.image.fromstring(dados, (largura, altura), "RGBA")
             
             if inverter_x:
@@ -42,12 +48,12 @@ def carregar_gif_otimizado(caminho_arquivo, escala=1.0, inverter_x=False):
                 novo_h = int(altura * escala)
                 surf = pygame.transform.scale(surf, (novo_w, novo_h))
             
-            # convert_alpha() crucial para performance fluida no PyGame
             frames.append(surf.convert_alpha())
             pil_img.seek(pil_img.tell() + 1)
     except EOFError:
         pass
     
+    pil_img.close()
     return frames
 
 
@@ -64,43 +70,41 @@ class AnimacaoGIF:
             return
         self.acumulador += dt
         if self.acumulador >= self.tempo_frame:
-            self.acumulador -= self.tempo_frame
+            self.acumulador %= self.tempo_frame
             self.frame_atual = (self.frame_atual + 1) % len(self.frames)
 
     def obter_frame(self):
         return self.frames[self.frame_atual]
 
 
-# --- Carregamento Pré-Otimizado das Animações ---
-print("Otimizando e carregando sprites na memória...")
-
+# --- Carregamento com NOVOS TAMANHOS (Escala Reduzida) ---
 GIFS = {
-    "INICIAL": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro.gif", escala=0.6), fps=10),
-    "ANDANDO_1": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro001.gif", escala=0.5), fps=14),
-    "ANDANDO_2": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro002.gif", escala=0.5), fps=14),
-    "PULO": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro008.gif", escala=0.5), fps=14),
-    "TROPECO": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-buro007.gif", escala=0.5), fps=10),
-    "MORTE": AnimacaoGIF(carregar_gif_otimizado("images/muse-dash-marij a.gif", escala=0.5), fps=10),
+    "INICIAL": AnimacaoGIF(carregar_gif_leve("images/muse-dash-buro.gif", escala=0.4), fps=10),
+    "ANDANDO_1": AnimacaoGIF(carregar_gif_leve("images/muse-dash-buro001.gif", escala=0.3), fps=12),
+    "ANDANDO_2": AnimacaoGIF(carregar_gif_leve("images/muse-dash-buro002.gif", escala=0.3), fps=12),
+    "PULO": AnimacaoGIF(carregar_gif_leve("images/muse-dash-buro008.gif", escala=0.3), fps=12),
+    "TROPECO": AnimacaoGIF(carregar_gif_leve("images/muse-dash-buro007.gif", escala=0.3), fps=10),
+    "MORTE": AnimacaoGIF(carregar_gif_leve("images/muse-dash-marij a.gif", escala=0.3), fps=10),
 }
 
 ANIMS_INIMIGA = {
-    "CORRENDO": carregar_gif_otimizado("images/inim001.gif", escala=0.22, inverter_x=True),
-    "PASSOU": carregar_gif_otimizado("images/inim002.gif", escala=0.22, inverter_x=True),
-    "IMPACTO": carregar_gif_otimizado("images/inim003.gif", escala=0.22, inverter_x=True),
+    "CORRENDO": carregar_gif_leve("images/inim001.gif", escala=0.12, inverter_x=True),
+    "PASSOU": carregar_gif_leve("images/inim002.gif", escala=0.12, inverter_x=True),
+    "IMPACTO": carregar_gif_leve("images/inim003.gif", escala=0.12, inverter_x=True),
 }
 
 # --- Fontes e Cores ---
-FONTE_TITULO = pygame.font.SysFont("arial", 28, bold=True)
+FONTE_TITULO = pygame.font.SysFont("arial", 26, bold=True)
 FONTE_SUB = pygame.font.SysFont("arial", 18)
 
 COR_FUNDO = (25, 20, 35)
 COR_CHAO = (180, 80, 120)
 COR_TEXTO = (255, 240, 250)
 
-# --- Física e Configurações do Jogo ---
+# --- Física do Pulo Ajustada (Mais Baixo e Controlado) ---
 CHAO_Y = ALTURA - 80
-GRAVIDADE = 1300.0
-FORCA_PULO = -420.0
+GRAVIDADE = 1200.0
+FORCA_PULO = -320.0  # Pulo bem mais baixo que antes
 
 class Inimiga:
     def __init__(self, x, y):
@@ -108,7 +112,8 @@ class Inimiga:
         self.anim_passou = AnimacaoGIF(ANIMS_INIMIGA["PASSOU"], fps=12)
         self.anim_impacto = AnimacaoGIF(ANIMS_INIMIGA["IMPACTO"], fps=12)
         
-        self.rect = pygame.Rect(x, y - 55, 40, 55)
+        # Caixas de colisão menores adaptadas à escala 0.12
+        self.rect = pygame.Rect(x, y - 35, 25, 35)
         self.esbarrou = False
 
     def atualizar(self, dt, velocidade, pos_x_jogador):
@@ -146,7 +151,7 @@ no_chao = True
 
 inimigas = []
 tempo_spawn = 0.0
-VELOCIDADE_CENARIO = 500.0
+VELOCIDADE_CENARIO = 450.0
 
 def resetar_jogo():
     global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, tempo_tropeco, esbarroes_sofridos, inimigas, estado_jogo
@@ -178,6 +183,7 @@ while True:
             elif estado_jogo == "MENU_REINICIAR":
                 resetar_jogo()
 
+    # --- Lógica de Atualização ---
     if estado_jogo == "TELA_INICIAL":
         GIFS["INICIAL"].atualizar(dt)
 
@@ -196,11 +202,12 @@ while True:
             no_chao = True
 
         tempo_spawn += dt
-        if tempo_spawn >= random.uniform(1.2, 2.2):
+        if tempo_spawn >= random.uniform(1.3, 2.3):
             tempo_spawn = 0.0
             inimigas.append(Inimiga(LARGURA + 20, CHAO_Y))
 
-        rect_jogador = pygame.Rect(pos_x - 20, pos_y - 60, 40, 60)
+        # Hitbox da jogadora reduzida (escala 0.3)
+        rect_jogador = pygame.Rect(pos_x - 12, pos_y - 40, 24, 40)
 
         for ini in inimigas[:]:
             ini.atualizar(dt, VELOCIDADE_CENARIO, pos_x)
@@ -213,7 +220,7 @@ while True:
                 intersecao = rect_jogador.clip(ini.rect)
                 ini.esbarrou = True
                 
-                if intersecao.width < 18 and rect_jogador.centerx < ini.rect.centerx:
+                if intersecao.width < 12 and rect_jogador.centerx < ini.rect.centerx:
                     esbarroes_sofridos += 1
                     if esbarroes_sofridos >= 2:
                         estado_jogo = "MORTO"
