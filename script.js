@@ -6,7 +6,7 @@ let gameObject = {
   },
   scene: {
     backgroundImage: "",
-    backgroundMode: "cover" // 'cover', 'contain', 'repeat'
+    backgroundMode: "cover"
   },
   entities: {}
 };
@@ -16,11 +16,31 @@ let selectedEntityId = null;
 function init() {
   populateSelectors();
   renderScene();
+  applyGenreLayout();
   renderStage();
 }
 
 function updateGameMeta(key, value) {
   gameObject.meta[key] = value;
+  if (key === 'genre') {
+    applyGenreLayout();
+    renderStage();
+  }
+}
+
+// Aplica visualmente as regras do estilo de jogo escolhido
+function applyGenreLayout() {
+  const stage = document.getElementById('game-stage');
+  const fightingUi = document.getElementById('fighting-ui');
+  const genre = gameObject.meta.genre;
+
+  stage.className = `mode-${genre}`;
+
+  if (genre === 'fighting') {
+    fightingUi.classList.remove('hidden');
+  } else {
+    fightingUi.classList.add('hidden');
+  }
 }
 
 // Configurações do Cenário (Background)
@@ -45,25 +65,41 @@ function renderScene() {
   const bgLayer = document.getElementById('background-layer');
   if (gameObject.scene.backgroundImage) {
     bgLayer.style.backgroundImage = `url('${gameObject.scene.backgroundImage}')`;
-    bgLayer.style.backgroundRepeat = gameObject.scene.backgroundMode === 'repeat' ? 'repeat' : 'no-repeat';
+    bgLayer.style.backgroundRepeat = (gameObject.scene.backgroundMode === 'repeat' || gameObject.meta.genre === 'racing') ? 'repeat' : 'no-repeat';
     bgLayer.style.backgroundSize = gameObject.scene.backgroundMode === 'repeat' ? 'auto' : gameObject.scene.backgroundMode;
   } else {
     bgLayer.style.backgroundImage = 'none';
   }
 }
 
-// Renderização dos Personagens
+// Renderização dos Personagens com base no estilo de jogo
 function renderStage() {
   const container = document.getElementById('entities-container');
   container.innerHTML = '';
 
-  Object.keys(gameObject.entities).forEach(id => {
+  const entityKeys = Object.keys(gameObject.entities);
+  const genre = gameObject.meta.genre;
+
+  entityKeys.forEach((id, index) => {
     const ent = gameObject.entities[id];
 
     const element = document.createElement('div');
     element.id = `entity-${id}`;
     element.className = `sprite-container layer-${ent.layer}`;
-    element.style.left = `${ent.positionX}%`;
+
+    // Posicionamento inteligente com base no modo do jogo
+    let posX = ent.positionX;
+    if (genre === 'fighting') {
+      // No modo de luta, posiciona o P1 à esquerda e o P2 à direita
+      posX = index === 0 ? 25 : 70;
+      if (index === 1) {
+        element.classList.add('flip-x'); // Espelha o segundo jogador
+      }
+    } else if (genre === 'racing') {
+      posX = 15 + (index * 25);
+    }
+
+    element.style.left = `${posX}%`;
 
     const img = document.createElement('img');
     img.src = ent.gifs.run || ent.gifs.idle || '';
@@ -71,6 +107,12 @@ function renderStage() {
 
     element.appendChild(img);
     container.appendChild(element);
+
+    // Atualiza nomes na barra de HP do modo de luta
+    if (genre === 'fighting') {
+      if (index === 0) document.getElementById('p1-name').innerText = ent.id.toUpperCase();
+      if (index === 1) document.getElementById('p2-name').innerText = ent.id.toUpperCase();
+    }
   });
 }
 
@@ -173,7 +215,6 @@ function createEntity() {
   renderStage();
 }
 
-// Permite excluir TODOS os personagens sem limitação
 function deleteEntity() {
   if (!selectedEntityId || !gameObject.entities[selectedEntityId]) return;
 
@@ -224,6 +265,7 @@ function loadGameFile(event) {
         selectedEntityId = null;
         populateSelectors();
         renderScene();
+        applyGenreLayout();
         renderStage();
         alert('Projeto carregado com sucesso!');
       } else {
