@@ -58,7 +58,7 @@ NORA_ACTIONS = {
 # =============================================================
 
 ENEMY_ACTIONS = {
-    "run":  "inim004.gif",
+    "run":  "inimiga_caminha.gif",
     "bump": "inimiga_esbarra_na_principal.gif",
 }
 
