@@ -5,13 +5,13 @@ const LARGURA = 960;
 const ALTURA = 540;
 const CHAO_Y = ALTURA - 80;
 
-// --- Configurações de Física e Velocidade ---
-const GRAVIDADE = 1000;         // Gravidade levemente menor para o pulo flutuar melhor
-const FORCA_PULO = -480;        // Pulo mais alto
-const VELOCIDADE_CENARIO = 280; // Jogo mais lento e cadenciado
+// --- Configurações de Física ---
+const GRAVIDADE = 1000;
+const FORCA_PULO = -480;
+const VELOCIDADE_CENARIO = 280;
 
-// --- Pré-carregamento das Imagens (GIFs) ---
-const imagens = {};
+// --- Dicionário de Animações ---
+const animacoes = {};
 const caminhos = {
   buroInicial: "images/muse-dash-buro.gif",
   buroAndando1: "images/muse-dash-buro001.gif",
@@ -24,9 +24,31 @@ const caminhos = {
   inimigaImpacto: "images/inim003.gif"
 };
 
+// Gerenciador de Animação para Canvas
+class AnimadorGif {
+  constructor(caminho) {
+    this.canvasFrame = document.createElement("canvas");
+    this.ctxFrame = this.canvasFrame.getContext("2d");
+    this.carregado = false;
+
+    if (window.gifler) {
+      gifler(caminho).get((anim) => {
+        this.canvasFrame.width = anim.width;
+        this.canvasFrame.height = anim.height;
+        anim.animateIn(this.canvasFrame);
+        this.carregado = true;
+      });
+    }
+  }
+
+  obterCanvas() {
+    return this.carregado ? this.canvasFrame : null;
+  }
+}
+
+// Carrega todos os GIFs com animação
 Object.keys(caminhos).forEach(chave => {
-  imagens[chave] = new Image();
-  imagens[chave].src = caminhos[chave];
+  animacoes[chave] = new AnimadorGif(caminhos[chave]);
 });
 
 // --- Estado do Jogo ---
@@ -45,39 +67,40 @@ let inimigas = [];
 let tempoSpawn = 0;
 let ultimoTempo = performance.now();
 
-// --- Classe da Inimiga ---
+// --- Classe Inimiga ---
 class Inimiga {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    // Hitbox aumentada proporcionalmente
     this.largura = 35;
     this.altura = 50;
     this.esbarrou = false;
   }
 
-  atualizar(dt, posXJogador) {
+  atualizar(dt) {
     this.x -= VELOCIDADE_CENARIO * dt;
   }
 
   desenhar(ctx, posXJogador) {
-    let img = imagens.inimigaCorrendo;
+    let anim = animacoes.inimigaCorrendo;
 
     if (this.esbarrou) {
-      img = imagens.inimigaImpacto;
+      anim = animacoes.inimigaImpacto;
     } else if (this.x + this.largura < posXJogador) {
-      img = imagens.inimigaPassou;
+      anim = animacoes.inimigaPassou;
     }
+
+    const frameCanvas = anim.obterCanvas();
+    if (!frameCanvas) return;
 
     ctx.save();
     ctx.translate(this.x + this.largura / 2, this.y);
     ctx.scale(-1, 1);
     
-    // Tamanho visual da inimiga aumentado (de 45px para 65px)
     const larguraImg = 65;
     const alturaImg = 65;
     
-    ctx.drawImage(img, -larguraImg / 2, -alturaImg, larguraImg, alturaImg);
+    ctx.drawImage(frameCanvas, -larguraImg / 2, -alturaImg, larguraImg, alturaImg);
     ctx.restore();
   }
 }
@@ -112,15 +135,17 @@ function resetarJogo() {
 
 // --- Loop Principal ---
 function gameLoop(tempoAtual) {
-  const dt = Math.min((tempoAtual - ultimoTempo) / 1000, 0.1); // Trava dt máximo para evitar saltos
+  const dt = Math.min((tempoAtual - ultimoTempo) / 1000, 0.1);
   ultimoTempo = tempoAtual;
 
-  // Limpa a tela
   ctx.fillStyle = "#191423";
   ctx.fillRect(0, 0, LARGURA, ALTURA);
 
   if (estadoJogo === "TELA_INICIAL") {
-    ctx.drawImage(imagens.buroInicial, LARGURA / 2 - 100, ALTURA / 2 - 120, 200, 200);
+    const frame = animacoes.buroInicial.obterCanvas();
+    if (frame) {
+      ctx.drawImage(frame, LARGURA / 2 - 100, ALTURA / 2 - 120, 200, 200);
+    }
     
     ctx.fillStyle = "#fff0fa";
     ctx.font = "bold 24px Arial";
@@ -131,10 +156,8 @@ function gameLoop(tempoAtual) {
     
     if (estadoJogo === "JOGANDO") {
       tempoCorrida += dt;
-
       if (tempoTropeco > 0) tempoTropeco -= dt;
 
-      // Aplicar gravidade
       velY += GRAVIDADE * dt;
       posY += velY * dt;
 
@@ -144,20 +167,17 @@ function gameLoop(tempoAtual) {
         noChao = true;
       }
 
-      // Spawner de inimigas (ajustado para a nova velocidade do jogo)
       tempoSpawn += dt;
       if (tempoSpawn >= 1.8 + Math.random() * 1.2) {
         tempoSpawn = 0;
         inimigas.push(new Inimiga(LARGURA + 20, CHAO_Y));
       }
 
-      // Hitbox maior da jogadora (30px largura por 55px altura)
       const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
 
-      // Atualiza Inimigas e Colisão
       for (let i = inimigas.length - 1; i >= 0; i--) {
         let ini = inimigas[i];
-        ini.atualizar(dt, posX);
+        ini.atualizar(dt);
 
         if (ini.x < -60) {
           inimigas.splice(i, 1);
@@ -188,31 +208,33 @@ function gameLoop(tempoAtual) {
       }
     }
 
-    // --- Desenhar Chão ---
+    // Desenhar Chão
     ctx.fillStyle = "#b45078";
     ctx.fillRect(0, CHAO_Y, LARGURA, ALTURA - CHAO_Y);
 
-    // --- Desenhar Inimigas ---
+    // Desenhar Inimigas
     inimigas.forEach(ini => ini.desenhar(ctx, posX));
 
-    // --- Selecionar Sprite da Jogadora ---
-    let imgBuro = imagens.buroAndando1;
+    // Selecionar Animação da Jogadora
+    let animBuro = animacoes.buroAndando1;
     if (estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
-      imgBuro = imagens.buroMorte;
+      animBuro = animacoes.buroMorte;
     } else if (tempoTropeco > 0) {
-      imgBuro = imagens.buroTropeco;
+      animBuro = animacoes.buroTropeco;
     } else if (!noChao) {
-      imgBuro = imagens.buroPulo;
+      animBuro = animacoes.buroPulo;
     } else if (tempoCorrida > 5.0) {
-      imgBuro = imagens.buroAndando2;
+      animBuro = animacoes.buroAndando2;
     }
 
-    // Tamanho visual da jogadora aumentado (de 75px para 105px)
-    const larguraBuro = 105;
-    const alturaBuro = 105;
-    ctx.drawImage(imgBuro, posX - larguraBuro / 2, posY - alturaBuro, larguraBuro, alturaBuro);
+    const frameBuro = animBuro.obterCanvas();
+    if (frameBuro) {
+      const larguraBuro = 105;
+      const alturaBuro = 105;
+      ctx.drawImage(frameBuro, posX - larguraBuro / 2, posY - alturaBuro, larguraBuro, alturaBuro);
+    }
 
-    // --- Interface de Texto ---
+    // Textos de Interface
     ctx.fillStyle = "#fff0fa";
     ctx.textAlign = "left";
     ctx.font = "18px Arial";
