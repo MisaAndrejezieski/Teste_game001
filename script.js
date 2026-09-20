@@ -13,6 +13,7 @@ const GRAVIDADE = 1000;
 const FORCA_PULO = -480;
 const VELOCIDADE_CENARIO = 280;
 
+// --- Mapeamento completo com a nova animação de vitória ---
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
@@ -21,7 +22,8 @@ const CAMINHOS = {
   buroMorte: "images/muse-dash-marija.gif",
   inimigaCorrendo: "images/inim001.gif",
   inimigaPassou: "images/inim002.gif",
-  inimigaImpacto: "images/inim003.gif"
+  inimigaImpacto: "images/inim003.gif",
+  inimigaVitoria: "images/inim004.gif" // inim004.gif tocado no esbarrão fatal!
 };
 
 let estadoJogo = "TELA_INICIAL";
@@ -46,6 +48,7 @@ class Inimiga {
     this.largura = 35;
     this.altura = 50;
     this.esbarrou = false;
+    this.derrotouJogador = false;
 
     this.element = document.createElement("img");
     this.element.className = "sprite inimigaSprite";
@@ -58,7 +61,12 @@ class Inimiga {
   atualizar(dt, posXJogador) {
     this.x -= VELOCIDADE_CENARIO * dt;
 
-    if (this.esbarrou) {
+    // Gerenciamento de Animação do Sprite da Inimiga
+    if (this.derrotouJogador) {
+      if (!this.element.src.includes(CAMINHOS.inimigaVitoria)) {
+        this.element.src = CAMINHOS.inimigaVitoria;
+      }
+    } else if (this.esbarrou) {
       if (!this.element.src.includes(CAMINHOS.inimigaImpacto)) {
         this.element.src = CAMINHOS.inimigaImpacto;
       }
@@ -117,9 +125,15 @@ function resetarJogo() {
   estadoJogo = "JOGANDO";
 }
 
-function acionarMorte() {
+function acionarMorte(inimigaCausadora) {
   estadoJogo = "MORTO";
   tempoMorte = 0;
+
+  // Aplica o GIF inim004 na inimiga que causou o golpe fatal
+  if (inimigaCausadora) {
+    inimigaCausadora.derrotouJogador = true;
+  }
+
   buroSprite.classList.add("morte");
   buroSprite.src = `${CAMINHOS.buroMorte}?t=${Date.now()}`;
 }
@@ -144,7 +158,6 @@ function gameLoop(tempoAtual) {
 
   } else if (estadoJogo === "JOGANDO" || estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
     
-    // --- Física do Pulo continua rodando em ambos os modos ---
     velY += GRAVIDADE * dt;
     posY += velY * dt;
 
@@ -154,7 +167,6 @@ function gameLoop(tempoAtual) {
       noChao = true;
     }
 
-    // --- O Cenário e o Spawner de Inimigas NUNCA param ---
     tempoSpawn += dt;
     if (tempoSpawn >= 1.8 + Math.random() * 1.2) {
       tempoSpawn = 0;
@@ -163,7 +175,6 @@ function gameLoop(tempoAtual) {
 
     const rectJogador = { x: posX - 15, y: posY - 55, largura: 30, altura: 55 };
 
-    // Atualiza inimigas
     for (let i = inimigas.length - 1; i >= 0; i--) {
       let ini = inimigas[i];
       ini.atualizar(dt, posX);
@@ -174,7 +185,6 @@ function gameLoop(tempoAtual) {
         continue;
       }
 
-      // Detecção de Colisão: APENAS quando está Vivo (JOGANDO)
       if (estadoJogo === "JOGANDO" && !ini.esbarrou) {
         if (rectJogador.x < ini.x + ini.largura &&
             rectJogador.x + rectJogador.largura > ini.x &&
@@ -185,7 +195,7 @@ function gameLoop(tempoAtual) {
           esbarroesSofridos++;
 
           if (esbarroesSofridos >= 2) {
-            acionarMorte();
+            acionarMorte(ini); // Envia a referência da inimiga fatal
           } else {
             tempoTropeco = 1.0;
           }
@@ -198,17 +208,14 @@ function gameLoop(tempoAtual) {
       if (tempoTropeco > 0) tempoTropeco -= dt;
     } else if (estadoJogo === "MORTO") {
       tempoMorte += dt;
-      // Contagem de 5 segundos correndo como fantasma
       if (tempoMorte >= 5.0) {
         estadoJogo = "MENU_REINICIAR";
       }
     }
 
-    // --- Desenhar Chão ---
     ctx.fillStyle = "#b45078";
     ctx.fillRect(0, CHAO_Y, LARGURA, ALTURA - CHAO_Y);
 
-    // --- Atualizar Animação da Buro ---
     if (estadoJogo === "JOGANDO") {
       let srcAtual = CAMINHOS.buroAndando1;
       if (tempoTropeco > 0) {
@@ -224,17 +231,12 @@ function gameLoop(tempoAtual) {
     buroSprite.style.left = `${posX}px`;
     buroSprite.style.top = `${posY}px`;
 
-    // --- Interface ---
     ctx.fillStyle = "#fff0fa";
-    ctx.textAlign = "left";
     ctx.font = "18px Arial";
 
     if (estadoJogo === "JOGANDO") {
+      ctx.textAlign = "left";
       ctx.fillText(`Esbarrões: ${esbarroesSofridos}/2`, 20, 30);
-    } else if (estadoJogo === "MORTO") {
-      ctx.textAlign = "center";
-      const restante = Math.max(0, Math.ceil(5 - tempoMorte));
-      ctx.fillText(`FANTASMA! Reiniciando em... ${restante}s`, LARGURA / 2, 80);
     } else if (estadoJogo === "MENU_REINICIAR") {
       ctx.textAlign = "center";
       ctx.font = "bold 24px Arial";
