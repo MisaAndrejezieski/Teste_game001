@@ -68,7 +68,7 @@ canvas {
 
 /* Compensação de escala específica para o pulo pequeno (muse-dash-buro003.gif) */
 #buroSprite.pulo-pequeno {
-  width: 4000px;
+  width: 400px;
   height: 250px;
 }
 
