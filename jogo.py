@@ -16,12 +16,11 @@ FPS = 60
 
 # --- Leitor de GIFs via PIL ---
 def carregar_gif(caminho_arquivo, escala=1.0):
-    """Carrega todos os frames de um GIF da pasta images/ e os converte para Superfícies do Pygame."""
+    """Carrega todos os frames de um GIF da pasta images/ e converte para Pygame."""
     try:
         pil_img = Image.open(caminho_arquivo)
     except Exception as e:
         print(f"Erro ao carregar {caminho_arquivo}: {e}")
-        # Cria uma superfície rosa de fallback se a imagem falhar
         surf = pygame.Surface((100, 100))
         surf.fill((255, 105, 180))
         return [surf]
@@ -29,12 +28,10 @@ def carregar_gif(caminho_arquivo, escala=1.0):
     frames = []
     try:
         while True:
-            # Converte o frame atual do GIF para RGBA
             frame_rgba = pil_img.convert("RGBA")
             largura, altura = frame_rgba.size
             dados = frame_rgba.tobytes()
             
-            # Converte bytes para Superfície do Pygame
             surf = pygame.image.fromstring(dados, (largura, altura), "RGBA")
             
             if escala != 1.0:
@@ -45,13 +42,13 @@ def carregar_gif(caminho_arquivo, escala=1.0):
             frames.append(surf)
             pil_img.seek(pil_img.tell() + 1)
     except EOFError:
-        pass  # Fim dos frames do GIF
+        pass
     
     return frames
 
 
-class AnimaçãoGIF:
-    """Classe para gerenciar a reprodução e temporização dos frames do GIF."""
+class AnimacaoGIF:
+    """Classe para gerir a reprodução dos frames do GIF."""
     def __init__(self, frames, fps=12):
         self.frames = frames
         self.fps = fps
@@ -71,15 +68,14 @@ class AnimaçãoGIF:
         return self.frames[self.frame_atual]
 
 
-# --- Carregamento dos GIFs na pasta images/ ---
-#[cite: 5, 6, 7, 8, 9]
+# --- Carregamento das Imagens/GIFs na pasta images/ ---
 GIFS = {
-    "INICIAL": AnimaçãoGIF(carregar_gif("images/muse-dash-buro.jpg", escala=0.6), fps=10),      # Tela de Abertura[cite: 5]
-    "ANDANDO_1": AnimaçãoGIF(carregar_gif("images/muse-dash-buro001.jpg", escala=0.5), fps=12),  # 0 a 5s de corrida[cite: 7]
-    "ANDANDO_2": AnimaçãoGIF(carregar_gif("images/muse-dash-buro002.jpg", escala=0.5), fps=12),  # 5s+ de corrida contínua[cite: 8]
-    "PULO": AnimaçãoGIF(carregar_gif("images/muse-dash-buro003.jpg", escala=0.5), fps=12),       # Foice / Ação no ar[cite: 6]
-    "MORTE": AnimaçãoGIF(carregar_gif("images/muse-dash-marija.jpg", escala=0.5), fps=10),      # Fantasma
-    "VITORIA": AnimaçãoGIF(carregar_gif("images/muse-dash-buro004.jpg", escala=0.5), fps=10),    # Celebração[cite: 9]
+    "INICIAL": AnimacaoGIF(carregar_gif("images/muse-dash-buro.gif", escala=0.6), fps=10),
+    "ANDANDO_1": AnimacaoGIF(carregar_gif("images/muse-dash-buro001.gif", escala=0.5), fps=12),
+    "ANDANDO_2": AnimacaoGIF(carregar_gif("images/muse-dash-buro002.gif", escala=0.5), fps=12),
+    "PULO": AnimacaoGIF(carregar_gif("images/muse-dash-buro003.gif", escala=0.5), fps=12),
+    "MORTE": AnimacaoGIF(carregar_gif("images/muse-dash-marij a.gif", escala=0.5), fps=10),
+    "VITORIA": AnimacaoGIF(carregar_gif("images/muse-dash-buro004.gif", escala=0.5), fps=10),
 }
 
 # --- Fontes e Cores ---
@@ -97,16 +93,14 @@ GRAVIDADE = 1200.0
 FORCA_PULO = -500.0
 
 # --- Estado Inicial do Jogo ---
-estado_jogo = "TELA_INICIAL"  # "TELA_INICIAL", "JOGANDO", "MORTO", "MENU_REINICIAR"
+estado_jogo = "TELA_INICIAL"
 tempo_corrida = 0.0
 tempo_morte = 0.0
 
-# Jogador
 pos_x, pos_y = 120, CHAO_Y
 vel_y = 0.0
 no_chao = True
 
-# Obstáculos
 obstaculos = []
 tempo_spawn = 0.0
 VELOCIDADE_CENARIO = 350.0
@@ -162,25 +156,24 @@ while True:
             tempo_spawn = 0.0
             obstaculos.append(pygame.Rect(LARGURA + 20, CHAO_Y - 40, 30, 40))
 
-        # Movimento dos Obstáculos e Colisão
+        # Movimento e Colisão
         rect_jogador = pygame.Rect(pos_x - 30, pos_y - 60, 60, 60)
         for obs in obstaculos[:]:
             obs.x -= int(VELOCIDADE_CENARIO * dt)
             if obs.x < -50:
                 obstaculos.remove(obs)
 
-            # Colisão detectada: entra no estado de morte
             if rect_jogador.colliderect(obs):
                 estado_jogo = "MORTO"
                 tempo_morte = 0.0
 
-        # Seleção do GIF ativo com base na mecânica
+        # Seleção da Animação
         if not no_chao:
-            anim_ativa = GIFS["PULO"][cite: 6]
+            anim_ativa = GIFS["PULO"]
         elif tempo_corrida > 5.0:
-            anim_ativa = GIFS["ANDANDO_2"][cite: 8]
+            anim_ativa = GIFS["ANDANDO_2"]
         else:
-            anim_ativa = GIFS["ANDANDO_1"][cite: 7]
+            anim_ativa = GIFS["ANDANDO_1"]
 
         anim_ativa.atualizar(dt)
 
@@ -188,11 +181,10 @@ while True:
         tempo_morte += dt
         GIFS["MORTE"].atualizar(dt)
 
-        # Após 10 segundos na forma de fantasma, libera a opção de reiniciar
         if tempo_morte >= 10.0:
             estado_jogo = "MENU_REINICIAR"
 
-    # --- Renderização na Tela ---
+    # --- Renderização ---
     TELA.fill(COR_FUNDO)
 
     if estado_jogo == "TELA_INICIAL":
@@ -204,27 +196,23 @@ while True:
         TELA.blit(txt, txt.get_rect(center=(LARGURA // 2, ALTURA - 60)))
 
     elif estado_jogo in ("JOGANDO", "MORTO", "MENU_REINICIAR"):
-        # Desenha o Chão
         pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y, LARGURA, ALTURA - CHAO_Y))
 
-        # Desenha Obstáculos
         for obs in obstaculos:
             pygame.draw.rect(TELA, COR_OBSTACULO, obs, border_radius=6)
 
-        # Escolhe a imagem da personagem
-        if estado_jogo == "MORTO" or estado_jogo == "MENU_REINICIAR":
+        if estado_jogo in ("MORTO", "MENU_REINICIAR"):
             frame = GIFS["MORTE"].obter_frame()
         elif not no_chao:
-            frame = GIFS["PULO"].obter_frame()[cite: 6]
+            frame = GIFS["PULO"].obter_frame()
         elif tempo_corrida > 5.0:
-            frame = GIFS["ANDANDO_2"].obter_frame()[cite: 8]
+            frame = GIFS["ANDANDO_2"].obter_frame()
         else:
-            frame = GIFS["ANDANDO_1"].obter_frame()[cite: 7]
+            frame = GIFS["ANDANDO_1"].obter_frame()
 
         rect = frame.get_rect(midbottom=(int(pos_x), int(pos_y)))
         TELA.blit(frame, rect)
 
-        # Exibe cronômetro e instrução de reinício
         if estado_jogo == "MORTO":
             tempo_restante = max(0, int(10 - tempo_morte))
             txt = FONTE_SUB.render(f"Aguarde... {tempo_restante}s", True, COR_TEXTO)
