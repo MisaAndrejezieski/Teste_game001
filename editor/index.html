@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Anime Game Studio - Criador de Jogos</title>
+  <title>Anime Game Studio — Editor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Palco / Canvas de Renderização do Jogo -->
+  <!-- Palco / Preview -->
   <div id="game-stage" class="mode-runner">
     <div id="background-layer"></div>
-    
-    <!-- Interface Dinâmica de Luta (HP Bars) -->
+
     <div id="fighting-ui" class="hidden">
       <div class="hp-bar-container player1">
         <span id="p1-name">P1</span>
@@ -29,147 +28,169 @@
     <div id="entities-container"></div>
   </div>
 
-  <!-- Painel de Controle e Criação -->
+  <!-- Painel de Controle -->
   <div id="control-panel">
-    <h2>Anime Game Studio</h2>
+    <h2>Anime Game Studio — Editor</h2>
 
-    <!-- Configurações Globais -->
+    <!-- Play -->
+    <div class="control-group play-group">
+      <button class="btn-action btn-green" onclick="playGame()">▶️ JOGAR (nova aba)</button>
+    </div>
+
+    <!-- 1. Configurações Globais -->
     <div class="control-group">
       <h3>1. Configurações do Jogo</h3>
       <div class="field">
         <label>Nome do Jogo:</label>
-        <input type="text" id="game-title" value="Meu Jogo Anime" onchange="updateGameMeta('title', this.value)" />
+        <input type="text" id="game-title" />
       </div>
       <div class="field">
         <label>Estilo de Jogo:</label>
-        <select id="game-genre" onchange="updateGameMeta('genre', this.value)">
-          <option value="runner">Runner (Estilo Dino Google)</option>
+        <select id="game-genre">
+          <option value="runner">Runner</option>
           <option value="fighting">Luta 2D</option>
           <option value="racing">Corrida / Obstáculos</option>
         </select>
       </div>
     </div>
 
-    <!-- Cenário e Fundo -->
+    <!-- 2. Cenário -->
     <div class="control-group">
-      <h3>2. Cenário & Fundo (Background)</h3>
-      <div class="file-field">
-        <label>Imagem ou GIF de Fundo:</label>
-        <input type="file" accept="image/*" onchange="uploadBackground(this.files[0])" />
+      <h3>2. Cenário & Fundo</h3>
+      <div class="field">
+        <label>Imagem de Fundo:</label>
+        <select id="bg-select"></select>
       </div>
       <div class="field">
         <label>Modo de Exibição:</label>
-        <select id="bg-mode" onchange="updateBackgroundMode(this.value)">
-          <option value="cover">Preencher Tela Toda (Cover)</option>
+        <select id="bg-mode">
+          <option value="cover">Preencher Tela (Cover)</option>
           <option value="contain">Ajustar Proporção (Contain)</option>
-          <option value="repeat">Repetir Cenário (Pattern)</option>
+          <option value="repeat">Repetir (Pattern)</option>
         </select>
       </div>
       <button class="btn-action btn-red" onclick="removeBackground()">🗑️ Remover Fundo</button>
     </div>
 
-    <!-- Gerenciador de Entidades/Personagens -->
+    <!-- 3. Entidades -->
     <div class="control-group">
       <h3>3. Entidades & Personagens</h3>
       <div class="field">
         <label>Selecionar:</label>
-        <select id="entity-selector" onchange="selectEntity(this.value)"></select>
+        <select id="entity-selector"></select>
       </div>
       <div class="field">
         <label>Novo ID/Nome:</label>
-        <input type="text" id="new-entity-id" placeholder="ex: chefao_fase1" />
+        <input type="text" id="new-entity-id" placeholder="ex: nora" />
       </div>
       <button class="btn-action btn-blue" onclick="createEntity()">+ Criar Entidade</button>
-      <button class="btn-action btn-red" id="btn-delete-entity" onclick="deleteEntity()">❌ Excluir Entidade Selecionada</button>
+      <button class="btn-action btn-red" id="btn-delete-entity" onclick="deleteEntity()">❌ Excluir Entidade</button>
     </div>
 
-    <!-- Regras e Físicas -->
+    <!-- 4. Propriedades -->
     <div class="control-group" id="group-properties">
       <h3>4. Propriedades & Físicas</h3>
       <div class="field">
-        <label>Papel no Jogo:</label>
-        <select id="prop-role" onchange="updateEntityProp('role', this.value)">
+        <label>Papel:</label>
+        <select id="prop-role">
           <option value="player">Jogador Principal</option>
           <option value="enemy">Inimigo / Obstáculo</option>
           <option value="prop">Objeto / Cenário</option>
         </select>
       </div>
       <div class="field">
-        <label>Camada (Z-Index):</label>
-        <select id="prop-layer" onchange="updateEntityProp('layer', this.value)">
-          <option value="foreground">Na Frente (Foreground)</option>
-          <option value="ground">No Chão (Main Stage)</option>
-          <option value="background">Atrás (Background)</option>
+        <label>Camada:</label>
+        <select id="prop-layer">
+          <option value="foreground">Na Frente</option>
+          <option value="ground">No Chão</option>
+          <option value="background">Atrás</option>
         </select>
       </div>
       <div class="checkbox-field">
-        <input type="checkbox" id="prop-density" onchange="updateEntityProp('hasDensity', this.checked)" />
-        <label for="prop-density">Possui colisão/corpo sólido</label>
+        <input type="checkbox" id="prop-density" />
+        <label for="prop-density">Colisão / Corpo sólido</label>
       </div>
       <div class="field">
-        <label>Chances/Vidas:</label>
-        <input type="number" id="prop-lives" min="0" max="99" onchange="updateEntityProp('extraLives', parseInt(this.value))" />
+        <label>Vidas:</label>
+        <input type="number" id="prop-lives" min="0" max="99" />
       </div>
       <div class="field">
-        <label>Velocidade / Força:</label>
-        <input type="number" id="prop-speed" min="0" max="1000" onchange="updateEntityProp('speed', parseInt(this.value))" />
+        <label>Velocidade:</label>
+        <input type="number" id="prop-speed" min="0" max="1000" />
       </div>
       <div class="field">
         <label>Força Pulo (px):</label>
-        <input type="number" id="prop-jump" min="0" max="500" onchange="updateEntityProp('jumpHeight', parseInt(this.value))" />
+        <input type="number" id="prop-jump" min="0" max="500" />
       </div>
       <div class="field">
-        <label>Tempo Flutuação (ms):</label>
-        <input type="number" id="prop-float" min="0" max="10000" step="100" onchange="updateEntityProp('floatTime', parseInt(this.value))" />
+        <label>Flutuação (ms):</label>
+        <input type="number" id="prop-float" min="0" max="10000" step="100" />
       </div>
       <div class="field">
-        <label>Escala (Tamanho):</label>
-        <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" onchange="updateEntityProp('scale', parseFloat(this.value))" />
+        <label>Escala:</label>
+        <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" />
       </div>
       <div class="field">
-        <label>Ajuste de Chão (Y):</label>
-        <input type="number" id="prop-offset-y" min="-300" max="300" onchange="updateEntityProp('offsetY', parseInt(this.value))" />
+        <label>Ajuste Chão (Y):</label>
+        <input type="number" id="prop-offset-y" min="-300" max="300" />
       </div>
     </div>
 
-    <!-- Upload de GIFs por Ação -->
+    <!-- 5. GIFs -->
     <div class="control-group" id="group-gifs">
-      <h3>5. Upload de GIFs de Animação</h3>
-      <div class="file-field">
-        <label>Parado / Base:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('idle', this.files[0])" />
+      <h3>5. GIFs de Animação</h3>
+      <div class="field">
+        <label>Parado (idle):</label>
+        <select id="gif-idle" data-action="idle"></select>
       </div>
-      <div class="file-field">
-        <label>Correr / Mover:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('run', this.files[0])" />
+      <div class="field">
+        <label>Correr (run):</label>
+        <select id="gif-run" data-action="run"></select>
       </div>
-      <div class="file-field">
-        <label>Pular:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('jump', this.files[0])" />
+      <div class="field">
+        <label>Pular (jump):</label>
+        <select id="gif-jump" data-action="jump"></select>
       </div>
-      <div class="file-field">
-        <label>Ataque / Especial:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('attack', this.files[0])" />
+      <div class="field">
+        <label>Ataque (attack):</label>
+        <select id="gif-attack" data-action="attack"></select>
       </div>
-      <div class="file-field">
-        <label>Dano / Esbarrão:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('bump', this.files[0])" />
+      <div class="field">
+        <label>Dano (bump):</label>
+        <select id="gif-bump" data-action="bump"></select>
       </div>
-      <div class="file-field">
-        <label>Morte / Derrota:</label>
-        <input type="file" accept="image/*" onchange="uploadEntityGif('defeat', this.files[0])" />
+      <div class="field">
+        <label>Morte (defeat):</label>
+        <select id="gif-defeat" data-action="defeat"></select>
       </div>
     </div>
 
-    <!-- Salvar e Carregar Arquivo -->
+    <!-- 6. Salvar / Carregar -->
     <div class="control-group">
-      <h3>6. Salvar / Carregar Projeto</h3>
-      <button class="btn-action btn-green" onclick="downloadGameFile()">💾 Baixar Arquivo do Jogo (.json)</button>
-      <input type="file" id="import-file" accept=".json" style="display: none;" onchange="loadGameFile(event)" />
-      <button class="btn-action btn-orange" onclick="document.getElementById('import-file').click()">📂 Carregar Arquivo de Jogo</button>
+      <h3>6. Projeto</h3>
+      <button class="btn-action btn-green" onclick="saveProjectAs()">💾 Salvar Versão</button>
+      <button class="btn-action btn-blue" onclick="exportGame()">⬇️ Exportar .json</button>
+      <input type="file" id="import-file" accept=".json" style="display:none;" />
+      <button class="btn-action btn-orange" onclick="document.getElementById('import-file').click()">📂 Importar .json</button>
+      <button class="btn-action btn-red" onclick="resetProject()">🔥 Novo Projeto</button>
+    </div>
+
+    <!-- 7. Versões Salvas -->
+    <div class="control-group">
+      <h3>7. Versões Salvas</h3>
+      <div class="field">
+        <label>Carregar:</label>
+        <select id="project-list"></select>
+      </div>
+      <button class="btn-action btn-blue" onclick="loadSelectedProject()">📥 Carregar Versão</button>
+      <button class="btn-action btn-red" onclick="deleteSelectedProject()">🗑️ Apagar Versão</button>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Camada compartilhada -->
+  <script src="../shared/schema.js"></script>
+  <script src="../shared/storage.js"></script>
+  <!-- Lógica do editor -->
+  <script src="editor.js"></script>
 </body>
 </html>
