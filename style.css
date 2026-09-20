@@ -68,8 +68,8 @@ canvas {
 
 /* Compensação de escala específica para o pulo pequeno (muse-dash-buro003.gif) */
 #buroSprite.pulo-pequeno {
-  width: 250px;
-  height: 250px;
+  width: 400px;
+  height: 400px;
 }
 
 /* Buro Fantasma (Morte) */
@@ -89,8 +89,8 @@ canvas {
 
 /* Inimiga quando mata a principal (inim004.gif): EM GRANDE DESTAQUE */
 .inimigaSprite.vitoria {
-  width: 700px;
-  height: 700px;
+  width: 600px;
+  height: 600px;
 }
 
 #menuSprite {
