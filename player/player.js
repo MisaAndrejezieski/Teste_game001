@@ -233,15 +233,23 @@ const RUNTIME = {
   },
 
   collide(a, o) {
-    const ax = a.x, ay = a.y + a.baseOffsetY;
+    const playerAction = a.data.actions[a.action] || a.data.actions.idle;
     const aw = (a.hitboxWidth || 60) * (a.actionScale || 1);
     const ah = (a.hitboxHeight || 60) * (a.actionScale || 1);
-    const ox = o.x - o.w/2, oy = o.y + (o.data.offsetY||0);
-    const pad = 12;
-    return (ax - aw/2 + pad < ox + o.w - pad) &&
-           (ax + aw/2 - pad > ox + pad) &&
-           (ay < oy + o.h - pad) &&
-           (ay + ah - pad > oy);
+    const playerBottom = this.GROUND_Y + a.y + (playerAction.positionY || 0);
+    const obstacleAction = o.data.actions.run || o.data.actions.idle;
+    const obstacleBottom = this.GROUND_Y + (obstacleAction.positionY || 0);
+    const pad = 8;
+    const playerLeft = a.x + pad;
+    const playerRight = a.x + aw - pad;
+    const obstacleLeft = o.x + pad;
+    const obstacleRight = o.x + o.w - pad;
+    const playerTop = playerBottom - ah + pad;
+    const obstacleTop = obstacleBottom - o.h + pad;
+    return playerLeft < obstacleRight &&
+      playerRight > obstacleLeft &&
+      playerTop < obstacleBottom - pad &&
+      playerBottom - pad > obstacleTop;
   },
 
   hitPlayer(player) {
@@ -249,6 +257,8 @@ const RUNTIME = {
     this.setAction(player, 'bump');
     this.lives--;
     this.updateHudLives();
+    player.el.classList.add('hit');
+    setTimeout(() => player.el.classList.remove('hit'), 180);
     if (this.lives <= 0) {
       this.setAction(player, 'defeat');
       this.endGame();

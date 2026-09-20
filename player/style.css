@@ -11,6 +11,8 @@ html, body { height:100%; background:#000; color:#fff; font-family:'Segoe UI',sa
 #entities-container { position:absolute; inset:0; z-index:5; }
 .sprite-container { position:absolute; bottom:80px; display:flex; justify-content:center; align-items:flex-end; }
 .sprite-container img { display:block; max-width:none; transform-origin:bottom center; }
+.sprite-container.hit { animation: hit-flash 0.18s steps(2, end); }
+@keyframes hit-flash { 50% { filter: brightness(2.5) saturate(0.2); } }
 .layer-background { z-index:2; } .layer-ground { z-index:11; } .layer-foreground { z-index:20; }
 
 #hud { position:absolute; top:12px; left:12px; display:flex; gap:12px; align-items:center; z-index:100; }

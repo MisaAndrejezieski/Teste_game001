@@ -1,4 +1,4 @@
-const SCHEMA_VERSION = "1.2.0";
+const SCHEMA_VERSION = "1.3.0";
 
 const DEFAULT_ENTITY = () => ({
   id: "",
@@ -66,7 +66,7 @@ const DEFAULT_GAME = () => ({
       extraLives: 1,
       speed: 0,
       spawnSide: "right",
-      flip: false,
+      flip: true,
       jumpHeight: 0,
       floatTime: 0,
       scale: 1,
@@ -95,6 +95,7 @@ function numberOrDefault(v, fallback, min, max) {
 function normalizeEntity(id, raw) {
   const b = DEFAULT_ENTITY();
   const e = isObject(raw) ? raw : {};
+  const spawnSide = ['left', 'right'].includes(e.spawnSide) ? e.spawnSide : b.spawnSide;
   const actions = {};
   const legacyGifs = isObject(e.gifs) ? e.gifs : {};
   const legacySettings = isObject(e.actionSettings) ? e.actionSettings : {};
@@ -130,8 +131,8 @@ function normalizeEntity(id, raw) {
     hasDensity: isBool(e.hasDensity) ? e.hasDensity : b.hasDensity,
     extraLives: numberOrDefault(e.extraLives, b.extraLives, 0, 99),
     speed: numberOrDefault(e.speed, b.speed, 0, 1000),
-    spawnSide: ['left', 'right'].includes(e.spawnSide) ? e.spawnSide : b.spawnSide,
-    flip: isBool(e.flip) ? e.flip : b.flip,
+    spawnSide,
+    flip: isBool(e.flip) ? e.flip : (e.role === 'enemy' && spawnSide === 'right'),
     jumpHeight: numberOrDefault(e.jumpHeight, b.jumpHeight, 0, 300),
     floatTime: isNumber(e.floatTime) ? e.floatTime : b.floatTime,
     scale: numberOrDefault(e.scale, b.scale, 0.1, 5),
@@ -146,6 +147,7 @@ function normalizeGame(data) {
   if (!isObject(data)) return b;
 
   const meta = isObject(data.meta) ? data.meta : {};
+  const isLegacyProject = meta.version !== SCHEMA_VERSION;
   const scene = isObject(data.scene) ? data.scene : {};
   const rules = isObject(data.rules) ? data.rules : {};
   const entities = isObject(data.entities) ? data.entities : {};
@@ -190,14 +192,20 @@ function normalizeGame(data) {
   const preferredPlayer = ids.includes('jogador') &&
     normalizeEntity('jogador', entities.jogador).role === 'player'
     ? 'jogador'
-    : ids.find(id => normalizeEntity(id, entities[id]).role === 'player');
+    : ids.find(id => normalizeEntity(id, entities[id]).role === 'player') ||
+      ids[0];
 
   ids.forEach(id => {
     if (!id) return;
     const entity = normalizeEntity(id, entities[id]);
-    if (entity.role === 'player' && id !== preferredPlayer) {
+    if (id === preferredPlayer) {
+      entity.role = 'player';
+    } else {
       entity.role = 'enemy';
       entity.spawnSide = 'right';
+      if (isLegacyProject) {
+        entity.flip = true;
+      }
       Object.values(entity.actions).forEach(action => {
         action.positionX = 100;
       });

@@ -325,6 +325,7 @@ function createEntity() {
   if (Object.values(game.entities).some(entity => entity.role === 'player')) {
     e.role = 'enemy';
     e.positionX = 100;
+    e.flip = true;
     Object.values(e.actions).forEach(action => { action.positionX = 100; });
   }
   game.entities[id] = e;
@@ -472,7 +473,8 @@ function renderStage() {
       const scale = action.scale || 1;
       const posY = action.positionY || 0;
       if (e.role !== 'enemy') el.style.left = `${action.positionX}%`;
-      img.style.transform = `scale(${scale}) translateY(${-posY}px)`;
+      const flip = e.role === 'enemy' && e.flip ? -1 : 1;
+      img.style.transform = `scale(${scale}) scaleX(${flip}) translateY(${-posY}px)`;
 
       el.appendChild(img);
     }
