@@ -36,7 +36,7 @@ JUMP_SPEED = 900
 # ESCALA DOS PERSONAGENS
 # =============================================================
 
-NORA_SCALE = 0.20
+NORA_SCALE = 0.40
 ENEMY_SCALE = 0.16
 
 
