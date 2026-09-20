@@ -4,7 +4,6 @@ import sys
 
 import pygame
 
-# --- Inicialização ---
 pygame.init()
 
 # --- Configurações da Janela ---
@@ -14,41 +13,31 @@ pygame.display.set_caption("A Jornada - Pixel Art Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carregamento da Folha de Sprites ---
-FOLHA = pygame.image.load("personagem.png").convert_alpha()
+# --- Carregamento dos Sprites (Grade 3x3) ---
+FOLHA = pygame.image.load("sprites0023.png").convert_alpha()
 LARG_TOTAL, ALT_TOTAL = FOLHA.get_size()
 
-COLUNAS = 6
-LINHAS = 4
+COLUNAS = 3
+LINHAS = 3
 
-# Cálculo preciso de tamanho por frame
-SPRITE_W = LARG_TOTAL / COLUNAS
-SPRITE_H = ALT_TOTAL / LINHAS
+SPRITE_W = LARG_TOTAL // COLUNAS
+SPRITE_H = ALT_TOTAL // LINHAS
 
-SPRITE_ESCALA = 2.2  # Escala de exibição
+SPRITE_ESCALA = 2.5
 
-def pegar_frame_grade(coluna, linha):
-    """
-    Recorta um frame aplicando uma margem de segurança de 1px 
-    para eliminar resíduos de linhas nas bordas superiores/inferiores.
-    """
-    x = int(coluna * SPRITE_W)
-    y = int(linha * SPRITE_H)
-    
-    w = int(SPRITE_W)
-    h = int(SPRITE_H)
+def pegar_frame(coluna, linha):
+    """Recorta um frame específico da grade 3x3."""
+    x = coluna * SPRITE_W
+    y = linha * SPRITE_H
+    sub = FOLHA.subsurface((x, y, SPRITE_W, SPRITE_H))
+    return pygame.transform.scale(
+        sub, (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
+    )
 
-    # Margem interna para evitar capturar linhas do frame vizinho
-    MARGEM_MIND = 1
-    sub = FOLHA.subsurface((x + MARGEM_MIND, y + MARGEM_MIND, w - (MARGEM_MIND * 2), h - (MARGEM_MIND * 2)))
-    
-    novo_w = int((w - MARGEM_MIND * 2) * SPRITE_ESCALA)
-    novo_h = int((h - MARGEM_MIND * 2) * SPRITE_ESCALA)
-    return pygame.transform.scale(sub, (novo_w, novo_h))
-
-# Linha 1: Animação de caminhada de lado na imagem original
-FRAMES_ANDAR = [pegar_frame_grade(col, 1) for col in range(COLUNAS)]
-FRAME_IDLE = FRAMES_ANDAR[0]
+# Recorta os frames principais
+FRAME_FRENTE = pegar_frame(1, 2)   # Frente (Centro, Baixo)
+FRAME_COSTAS = pegar_frame(1, 0)   # Costas (Centro, Cima)
+FRAME_PERFIL = pegar_frame(0, 1)   # Perfil/Lado (Esquerda, Meio)
 
 # --- Cores do Cenário ---
 COR_CEU_TOPO = (12, 10, 30)
@@ -65,7 +54,7 @@ COR_DUNA_PERTO = (150, 92, 120)
 COR_CHAO = (90, 58, 85)
 COR_PARTICULA = (210, 160, 255)
 
-# --- Física do Mundo ---
+# --- Física do Jogo ---
 GRAVIDADE = 420.0
 FORCA_FLUTUACAO = -310.0
 VELOCIDADE_X = 220.0
@@ -75,7 +64,7 @@ CHAO_Y = ALTURA - 70
 # --- Estado do Jogador ---
 x, y = LARGURA // 2, CHAO_Y
 vel_y = 0.0
-direcao = -1  # -1 = Esquerda (padrão do sprite original), 1 = Direita
+direcao = 1  # 1 = Direita, -1 = Esquerda
 no_ar = False
 tempo_animacao = 0.0
 
@@ -171,15 +160,13 @@ while True:
 
     teclas = pygame.key.get_pressed()
     nova_direcao = 0
-    if teclas[pygame.K_LEFT]: 
-        nova_direcao = -1
-    if teclas[pygame.K_RIGHT]: 
-        nova_direcao = 1
-    
+    if teclas[pygame.K_LEFT]: nova_direcao = -1
+    if teclas[pygame.K_RIGHT]: nova_direcao = 1
+
     if nova_direcao != 0:
         direcao = nova_direcao
 
-    # Flutuação e Controles
+    # Controles Verticais / Flutuação
     if teclas[pygame.K_SPACE] or teclas[pygame.K_UP]:
         vel_y += FORCA_FLUTUACAO * dt * 7.5
         criar_particula(x, y - 5)
@@ -199,7 +186,7 @@ while True:
     x += nova_direcao * VELOCIDADE_X * dt
     x = max(30, min(LARGURA - 30, x))
 
-    # Paralaxe do Cenário
+    # Paralaxe
     off_fundo += nova_direcao * 18 * dt
     off_medio += nova_direcao * 55 * dt
     off_perto += nova_direcao * 120 * dt
@@ -216,20 +203,14 @@ while True:
     atualizar_desenhar_particulas(dt)
     desenhar_sombra(x, y)
 
-    # Animação
-    if no_ar:
-        sprite_atual = FRAMES_ANDAR[3]
-    elif nova_direcao != 0:
-        idx = int(tempo_animacao * 10) % len(FRAMES_ANDAR)
-        sprite_atual = FRAMES_ANDAR[idx]
+    # Seleção de Sprite baseada no movimento
+    if nova_direcao != 0:
+        sprite_atual = FRAME_PERFIL
+        # Espelha o sprite quando anda para a direita (pois o frame original olha para a esquerda)
+        if direcao == 1:
+            sprite_atual = pygame.transform.flip(sprite_atual, True, False)
     else:
-        sprite_atual = FRAME_IDLE
-
-    # CORREÇÃO DA DIREÇÃO:
-    # A imagem original caminha para a ESQUERDA (direcao = -1).
-    # Portanto, só espelhamos a imagem quando a direção for DIREITA (direcao = 1).
-    if direcao == 1:
-        sprite_atual = pygame.transform.flip(sprite_atual, True, False)
+        sprite_atual = FRAME_FRENTE
 
     rect = sprite_atual.get_rect()
     rect.midbottom = (int(x), int(y))
