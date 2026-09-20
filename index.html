@@ -15,21 +15,66 @@
       overflow: hidden;
       font-family: Arial, sans-serif;
     }
-    #gameContainer {
+
+    #gameArea {
       position: relative;
-    }
-    canvas {
+      width: 960px;
+      height: 540px;
+      background-color: #191423;
       border: 2px solid #b45078;
       box-shadow: 0 0 20px rgba(180, 80, 120, 0.4);
-      background-color: #191423;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 10;
+    }
+
+    /* Elementos visuais (GIFs) gerenciados via DOM */
+    .sprite {
+      position: absolute;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    #buroSprite {
+      width: 105px;
+      height: auto;
+      transform: translate(-50%, -100%);
+    }
+
+    .inimigaSprite {
+      width: 65px;
+      height: auto;
+      transform: scaleX(-1) translate(50%, -100%); /* Inverte horizontalmente */
+    }
+
+    #menuSprite {
+      position: absolute;
+      left: 50%;
+      top: 45%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      z-index: 5;
     }
   </style>
-  <!-- Biblioteca para decodificar e animar GIFs no Canvas -->
-  <script src="https://unpkg.com/gifler@0.1.0/gifler.min.js"></script>
 </head>
 <body>
 
-  <div id="gameContainer">
+  <div id="gameArea">
+    <!-- Elemento para a tela inicial -->
+    <img id="menuSprite" src="images/muse-dash-buro.gif" style="display: block;">
+    
+    <!-- Sprite da Personagem Principal -->
+    <img id="buroSprite" class="sprite" src="images/muse-dash-buro001.gif" style="display: none;">
+    
+    <!-- Contentor para as Inimigas -->
+    <div id="inimigasContainer"></div>
+
+    <!-- Canvas para chão, interface e colisões -->
     <canvas id="gameCanvas" width="960" height="540"></canvas>
   </div>
 
