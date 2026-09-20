@@ -13,7 +13,11 @@ const GRAVIDADE = 1000;
 const FORCA_PULO = -480;
 const VELOCIDADE_CENARIO = 280;
 
-// --- Mapeamento completo com a nova animação de vitória ---
+// POSIÇÃO DA PERSONAGEM PRINCIPAL:
+// Mudado de 120 para 380 para dar bastante espaço no lado esquerdo da tela
+// e permitir que a inimiga reaja e execute seus GIFs pós-colisão.
+const POS_X_INICIAL = 380;
+
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
@@ -23,7 +27,7 @@ const CAMINHOS = {
   inimigaCorrendo: "images/inim001.gif",
   inimigaPassou: "images/inim002.gif",
   inimigaImpacto: "images/inim003.gif",
-  inimigaVitoria: "images/inim004.gif" // inim004.gif tocado no esbarrão fatal!
+  inimigaVitoria: "images/inim004.gif"
 };
 
 let estadoJogo = "TELA_INICIAL";
@@ -32,7 +36,7 @@ let tempoMorte = 0;
 let tempoTropeco = 0;
 let esbarroesSofridos = 0;
 
-let posX = 120;
+let posX = POS_X_INICIAL;
 let posY = CHAO_Y;
 let velY = 0;
 let noChao = true;
@@ -61,7 +65,7 @@ class Inimiga {
   atualizar(dt, posXJogador) {
     this.x -= VELOCIDADE_CENARIO * dt;
 
-    // Gerenciamento de Animação do Sprite da Inimiga
+    // Troca os GIFs conforme o evento com a principal
     if (this.derrotouJogador) {
       if (!this.element.src.includes(CAMINHOS.inimigaVitoria)) {
         this.element.src = CAMINHOS.inimigaVitoria;
@@ -106,7 +110,7 @@ window.addEventListener("keydown", (e) => {
 document.getElementById("gameArea").addEventListener("click", acaoJogador);
 
 function resetarJogo() {
-  posX = 120;
+  posX = POS_X_INICIAL;
   posY = CHAO_Y;
   velY = 0;
   noChao = true;
@@ -129,7 +133,6 @@ function acionarMorte(inimigaCausadora) {
   estadoJogo = "MORTO";
   tempoMorte = 0;
 
-  // Aplica o GIF inim004 na inimiga que causou o golpe fatal
   if (inimigaCausadora) {
     inimigaCausadora.derrotouJogador = true;
   }
@@ -195,7 +198,7 @@ function gameLoop(tempoAtual) {
           esbarroesSofridos++;
 
           if (esbarroesSofridos >= 2) {
-            acionarMorte(ini); // Envia a referência da inimiga fatal
+            acionarMorte(ini);
           } else {
             tempoTropeco = 1.0;
           }
