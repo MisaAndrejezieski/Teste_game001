@@ -9,12 +9,10 @@ const LARGURA = 960;
 const ALTURA = 540;
 const CHAO_Y = ALTURA - 80;
 
-// --- Ajustes de Física e Velocidades ---
 const GRAVIDADE = 1000;
-const FORCA_PULO = -480;        // Pulo proporcional e mais alto
-const VELOCIDADE_CENARIO = 280; // Velocidade mais cadenciada
+const FORCA_PULO = -480;
+const VELOCIDADE_CENARIO = 280;
 
-// --- Caminhos das Imagens ---
 const CAMINHOS = {
   buroAndando1: "images/muse-dash-buro001.gif",
   buroAndando2: "images/muse-dash-buro002.gif",
@@ -26,7 +24,6 @@ const CAMINHOS = {
   inimigaImpacto: "images/inim003.gif"
 };
 
-// --- Estado do Jogo ---
 let estadoJogo = "TELA_INICIAL";
 let tempoCorrida = 0;
 let tempoMorte = 0;
@@ -42,7 +39,6 @@ let inimigas = [];
 let tempoSpawn = 0;
 let ultimoTempo = performance.now();
 
-// --- Classe da Inimiga ---
 class Inimiga {
   constructor(x, y) {
     this.x = x;
@@ -51,7 +47,6 @@ class Inimiga {
     this.altura = 50;
     this.esbarrou = false;
 
-    // Criar elemento DOM da imagem da inimiga
     this.element = document.createElement("img");
     this.element.className = "sprite inimigaSprite";
     this.element.src = CAMINHOS.inimigaCorrendo;
@@ -88,7 +83,6 @@ class Inimiga {
   }
 }
 
-// --- Controles ---
 function acaoJogador() {
   if (estadoJogo === "TELA_INICIAL" || estadoJogo === "MENU_REINICIAR") {
     resetarJogo();
@@ -118,8 +112,16 @@ function resetarJogo() {
 
   menuSprite.style.display = "none";
   buroSprite.style.display = "block";
+  buroSprite.classList.remove("morte");
 
   estadoJogo = "JOGANDO";
+}
+
+function acionarMorte() {
+  estadoJogo = "MORTO";
+  tempoMorte = 0;
+  buroSprite.classList.add("morte");
+  buroSprite.src = `${CAMINHOS.buroMorte}?t=${Date.now()}`;
 }
 
 function atualizarSpriteJogador(novoSrc) {
@@ -128,7 +130,6 @@ function atualizarSpriteJogador(novoSrc) {
   }
 }
 
-// --- Loop Principal ---
 function gameLoop(tempoAtual) {
   const dt = Math.min((tempoAtual - ultimoTempo) / 1000, 0.1);
   ultimoTempo = tempoAtual;
@@ -185,8 +186,7 @@ function gameLoop(tempoAtual) {
           esbarroesSofridos++;
 
           if (esbarroesSofridos >= 2) {
-            estadoJogo = "MORTO";
-            tempoMorte = 0;
+            acionarMorte();
           } else {
             tempoTropeco = 1.0;
           }
@@ -199,27 +199,24 @@ function gameLoop(tempoAtual) {
       }
     }
 
-    // --- Desenhar Chão ---
     ctx.fillStyle = "#b45078";
     ctx.fillRect(0, CHAO_Y, LARGURA, ALTURA - CHAO_Y);
 
-    // --- Atualizar Sprite do Jogador ---
-    let srcAtual = CAMINHOS.buroAndando1;
-    if (estadoJogo === "MORTO" || estadoJogo === "MENU_REINICIAR") {
-      srcAtual = CAMINHOS.buroMorte;
-    } else if (tempoTropeco > 0) {
-      srcAtual = CAMINHOS.buroTropeco;
-    } else if (!noChao) {
-      srcAtual = CAMINHOS.buroPulo;
-    } else if (tempoCorrida > 5.0) {
-      srcAtual = CAMINHOS.buroAndando2;
+    if (estadoJogo !== "MORTO" && estadoJogo !== "MENU_REINICIAR") {
+      let srcAtual = CAMINHOS.buroAndando1;
+      if (tempoTropeco > 0) {
+        srcAtual = CAMINHOS.buroTropeco;
+      } else if (!noChao) {
+        srcAtual = CAMINHOS.buroPulo;
+      } else if (tempoCorrida > 5.0) {
+        srcAtual = CAMINHOS.buroAndando2;
+      }
+      atualizarSpriteJogador(srcAtual);
     }
 
-    atualizarSpriteJogador(srcAtual);
     buroSprite.style.left = `${posX}px`;
     buroSprite.style.top = `${posY}px`;
 
-    // --- Interface de Texto ---
     ctx.fillStyle = "#fff0fa";
     ctx.textAlign = "left";
     ctx.font = "18px Arial";
