@@ -66,14 +66,17 @@ ENEMY_ACTIONS = {
 
 
 # =============================================================
-# CENÁRIO (paralaxe com 3 camadas do cenário 004)
+# CENÁRIO (paralaxe com 3 camadas distintas)
 # =============================================================
 # Lista de (arquivo, velocidade_relativa)
 # Ordem: do mais distante (lento) para o mais próximo (rápido)
 #
-# A velocidade efetiva de cada camada é:
-#   WORLD_SPEED * velocidade_relativa
+# IMPORTANTE: use imagens DIFERENTES em cada camada.
+# Repetir a mesma imagem cria efeito de "ghosting" e não
+# dá sensação de profundidade.
 
 SCENERY = [
-    ("cenario004.jpg", 0.5),
+    ("cenario004.jpg", 0.10),   # fundo distante (mais lento)
+    ("cenario002.jpg", 0.35),   # meio
+    ("cenario001.jpg", 0.85),   # frente (mais rápido)
 ]
