@@ -1,3 +1,8 @@
+/* =========================================================
+   Anime Game Studio — script.js
+   Bloco 1: Correções críticas
+   ========================================================= */
+
 let gameObject = {
   meta: {
     title: "Meu Jogo Anime",
@@ -12,6 +17,69 @@ let gameObject = {
 };
 
 let selectedEntityId = null;
+
+/* ---------------------------------------------------------
+   HELPERS
+   --------------------------------------------------------- */
+
+// Centraliza criação de objectURL, revogando o anterior se existir.
+// Evita vazamento de memória ao trocar imagens repetidamente.
+function setObjectUrl(container, key, file) {
+  if (container[key] && container[key].startsWith('blob:')) {
+    URL.revokeObjectURL(container[key]);
+  }
+  container[key] = file ? URL.createObjectURL(file) : "";
+}
+
+// Valida e normaliza um gameObject carregado de JSON.
+// Preenche campos ausentes com defaults para não quebrar o app.
+function normalizeGameObject(data) {
+  const base = {
+    meta: { title: "Meu Jogo Anime", genre: "runner", version: "1.0.0" },
+    scene: { backgroundImage: "", backgroundMode: "cover" },
+    entities: {}
+  };
+
+  if (!data || typeof data !== 'object') return base;
+
+  const normalized = {
+    meta: { ...base.meta, ...(data.meta || {}) },
+    scene: { ...base.scene, ...(data.scene || {}) },
+    entities: {}
+  };
+
+  const entities = data.entities || {};
+  Object.keys(entities).forEach(id => {
+    const e = entities[id] || {};
+    normalized.entities[id] = {
+      id: id,
+      role: e.role || "player",
+      layer: e.layer || "foreground",
+      hasDensity: e.hasDensity !== undefined ? e.hasDensity : true,
+      extraLives: Number.isFinite(e.extraLives) ? e.extraLives : 3,
+      speed: Number.isFinite(e.speed) ? e.speed : 200,
+      jumpHeight: Number.isFinite(e.jumpHeight) ? e.jumpHeight : 150,
+      floatTime: Number.isFinite(e.floatTime) ? e.floatTime : 0,
+      scale: Number.isFinite(e.scale) ? e.scale : 1,
+      offsetY: Number.isFinite(e.offsetY) ? e.offsetY : 0,
+      positionX: Number.isFinite(e.positionX) ? e.positionX : 20,
+      gifs: {
+        idle:   (e.gifs && e.gifs.idle)   || "",
+        run:    (e.gifs && e.gifs.run)    || "",
+        jump:   (e.gifs && e.gifs.jump)   || "",
+        attack: (e.gifs && e.gifs.attack) || "",
+        bump:   (e.gifs && e.gifs.bump)   || "",
+        defeat: (e.gifs && e.gifs.defeat) || ""
+      }
+    };
+  });
+
+  return normalized;
+}
+
+/* ---------------------------------------------------------
+   INIT
+   --------------------------------------------------------- */
 
 function init() {
   populateSelectors();
@@ -28,7 +96,6 @@ function updateGameMeta(key, value) {
   }
 }
 
-// Aplica visualmente as regras do estilo de jogo escolhido
 function applyGenreLayout() {
   const stage = document.getElementById('game-stage');
   const fightingUi = document.getElementById('fighting-ui');
@@ -43,11 +110,13 @@ function applyGenreLayout() {
   }
 }
 
-// Configurações do Cenário (Background)
+/* ---------------------------------------------------------
+   CENÁRIO / BACKGROUND
+   --------------------------------------------------------- */
+
 function uploadBackground(file) {
   if (!file) return;
-  const objectUrl = URL.createObjectURL(file);
-  gameObject.scene.backgroundImage = objectUrl;
+  setObjectUrl(gameObject.scene, 'backgroundImage', file);
   renderScene();
 }
 
@@ -57,6 +126,10 @@ function updateBackgroundMode(mode) {
 }
 
 function removeBackground() {
+  if (gameObject.scene.backgroundImage &&
+      gameObject.scene.backgroundImage.startsWith('blob:')) {
+    URL.revokeObjectURL(gameObject.scene.backgroundImage);
+  }
   gameObject.scene.backgroundImage = "";
   renderScene();
 }
@@ -65,14 +138,22 @@ function renderScene() {
   const bgLayer = document.getElementById('background-layer');
   if (gameObject.scene.backgroundImage) {
     bgLayer.style.backgroundImage = `url('${gameObject.scene.backgroundImage}')`;
-    bgLayer.style.backgroundRepeat = (gameObject.scene.backgroundMode === 'repeat' || gameObject.meta.genre === 'racing') ? 'repeat' : 'no-repeat';
-    bgLayer.style.backgroundSize = gameObject.scene.backgroundMode === 'repeat' ? 'auto' : gameObject.scene.backgroundMode;
+    bgLayer.style.backgroundRepeat =
+      (gameObject.scene.backgroundMode === 'repeat' || gameObject.meta.genre === 'racing')
+        ? 'repeat' : 'no-repeat';
+    bgLayer.style.backgroundSize =
+      gameObject.scene.backgroundMode === 'repeat'
+        ? 'auto'
+        : gameObject.scene.backgroundMode;
   } else {
     bgLayer.style.backgroundImage = 'none';
   }
 }
 
-// Renderização dos Personagens com base no estilo de jogo
+/* ---------------------------------------------------------
+   RENDER DAS ENTIDADES
+   --------------------------------------------------------- */
+
 function renderStage() {
   const container = document.getElementById('entities-container');
   container.innerHTML = '';
@@ -87,34 +168,50 @@ function renderStage() {
     element.id = `entity-${id}`;
     element.className = `sprite-container layer-${ent.layer}`;
 
-    // Posicionamento inteligente com base no modo do jogo
+    // Posicionamento por gênero
     let posX = ent.positionX;
+    let flip = false;
+
     if (genre === 'fighting') {
-      // No modo de luta, posiciona o P1 à esquerda e o P2 à direita
       posX = index === 0 ? 25 : 70;
-      if (index === 1) {
-        element.classList.add('flip-x'); // Espelha o segundo jogador
-      }
+      if (index === 1) flip = true;
     } else if (genre === 'racing') {
       posX = 15 + (index * 25);
     }
 
     element.style.left = `${posX}%`;
 
-    const img = document.createElement('img');
-    img.src = ent.gifs.run || ent.gifs.idle || '';
-    img.style.transform = `scale(${ent.scale || 1}) translateY(${-(ent.offsetY || 0)}px)`;
+    // Só cria a <img> se houver um GIF disponível.
+    // Evita request fantasma de src="" no navegador.
+    const src = ent.gifs.run || ent.gifs.idle || "";
+    if (src) {
+      const img = document.createElement('img');
+      img.src = src;
 
-    element.appendChild(img);
+      // Unifica flip + escala + offsetY num único transform inline.
+      // Antes, o flip-x do CSS era sobrescrito pelo transform inline.
+      const scale = ent.scale || 1;
+      const offsetY = ent.offsetY || 0;
+      const flipPart = flip ? ' scaleX(-1)' : '';
+      img.style.transform =
+        `scale(${scale}) translateY(${-offsetY}px)${flipPart}`;
+
+      element.appendChild(img);
+    }
+
     container.appendChild(element);
 
-    // Atualiza nomes na barra de HP do modo de luta
+    // Nomes na barra de HP do modo luta
     if (genre === 'fighting') {
       if (index === 0) document.getElementById('p1-name').innerText = ent.id.toUpperCase();
       if (index === 1) document.getElementById('p2-name').innerText = ent.id.toUpperCase();
     }
   });
 }
+
+/* ---------------------------------------------------------
+   SELETOR / PAINEL DE ENTIDADES
+   --------------------------------------------------------- */
 
 function populateSelectors() {
   document.getElementById('game-title').value = gameObject.meta.title;
@@ -219,6 +316,12 @@ function deleteEntity() {
   if (!selectedEntityId || !gameObject.entities[selectedEntityId]) return;
 
   if (confirm(`Excluir o personagem '${selectedEntityId}'?`)) {
+    // Libera blobs da entidade antes de remover
+    const ent = gameObject.entities[selectedEntityId];
+    Object.values(ent.gifs || {}).forEach(url => {
+      if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
+
     delete gameObject.entities[selectedEntityId];
     selectedEntityId = null;
     populateSelectors();
@@ -236,46 +339,83 @@ function updateEntityProp(prop, value) {
 }
 
 function uploadEntityGif(action, file) {
-  if (!file || !selectedEntityId) return;
+  if (!selectedEntityId) return;
   const ent = gameObject.entities[selectedEntityId];
-  if (ent) {
-    const objectUrl = URL.createObjectURL(file);
-    ent.gifs[action] = objectUrl;
+  if (!ent) return;
+
+  if (!file) {
+    // Se o usuário cancelar o upload, libera o blob antigo
+    if (ent.gifs[action] && ent.gifs[action].startsWith('blob:')) {
+      URL.revokeObjectURL(ent.gifs[action]);
+    }
+    ent.gifs[action] = "";
     renderStage();
+    return;
   }
+
+  setObjectUrl(ent.gifs, action, file);
+  renderStage();
 }
 
+/* ---------------------------------------------------------
+   SALVAR / CARREGAR
+   --------------------------------------------------------- */
+
 function downloadGameFile() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameObject, null, 2));
+  const dataStr = "data:text/json;charset=utf-8," +
+                  encodeURIComponent(JSON.stringify(gameObject, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `${gameObject.meta.title.toLowerCase().replace(/\s+/g, '_')}_game.json`);
+  downloadAnchor.setAttribute("download",
+    `${gameObject.meta.title.toLowerCase().replace(/\s+/g, '_')}_game.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
 }
 
 function loadGameFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
   const fileReader = new FileReader();
   fileReader.onload = function(e) {
     try {
       const loadedData = JSON.parse(e.target.result);
-      if (loadedData.meta) {
-        gameObject = loadedData;
-        selectedEntityId = null;
-        populateSelectors();
-        renderScene();
-        applyGenreLayout();
-        renderStage();
-        alert('Projeto carregado com sucesso!');
-      } else {
-        alert('Arquivo de jogo inválido.');
+
+      // Validação robusta: exige meta + entities
+      if (!loadedData || typeof loadedData !== 'object' || !loadedData.meta) {
+        alert('Arquivo de jogo inválido: estrutura ausente.');
+        return;
       }
+
+      // Libera blobs antigos antes de substituir o estado
+      Object.values(gameObject.entities).forEach(ent => {
+        Object.values(ent.gifs || {}).forEach(url => {
+          if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+        });
+      });
+      if (gameObject.scene.backgroundImage &&
+          gameObject.scene.backgroundImage.startsWith('blob:')) {
+        URL.revokeObjectURL(gameObject.scene.backgroundImage);
+      }
+
+      gameObject = normalizeGameObject(loadedData);
+      selectedEntityId = null;
+
+      populateSelectors();
+      renderScene();
+      applyGenreLayout();
+      renderStage();
+      alert('Projeto carregado com sucesso!');
     } catch (err) {
+      console.error(err);
       alert('Erro ao ler o arquivo JSON.');
     }
   };
-  fileReader.readAsText(event.target.files[0]);
+  fileReader.readAsText(file);
+
+  // Permite reimportar o mesmo arquivo depois
+  event.target.value = '';
 }
 
 window.addEventListener('DOMContentLoaded', init);
