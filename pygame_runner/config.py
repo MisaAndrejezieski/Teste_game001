@@ -22,8 +22,9 @@ GROUND_Y = 560
 # MUNDO / FÍSICA
 # =============================================================
 
-WORLD_SPEED = 320
-SPAWN_INTERVAL = 1.5
+WORLD_SPEED = 320           # velocidade do cenário (rolagem)
+ENEMY_SPEED = 520           # velocidade da inimiga (maior = vem mais rápido)
+SPAWN_INTERVAL = 1.5        # segundos entre spawns
 PLAYER_X = 180
 DAMAGE_COOLDOWN = 0.9
 MAX_LIVES = 3

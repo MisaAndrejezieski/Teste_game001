@@ -270,7 +270,8 @@ class RunnerGame:
 
     def _update_enemies(self, dt: float) -> None:
         for enemy in self.enemies:
-            enemy.x -= config.WORLD_SPEED * dt
+            # Inimiga vem em direção à Nora na velocidade própria dela
+            enemy.x -= config.ENEMY_SPEED * dt
             enemy.hit_timer = max(0.0, enemy.hit_timer - dt)
             if enemy.hit_timer <= 0 and enemy.action != "run":
                 enemy.action = "run"
