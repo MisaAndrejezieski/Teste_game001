@@ -11,7 +11,8 @@ const STORAGE_KEY_PROJECTS = "ags_projects";     // lista de snapshots salvos
 
 function saveDraft(game) {
   try {
-    localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(game));
+    const normalized = window.Schema.normalizeGame(game);
+    localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(normalized));
     return true;
   } catch (e) {
     console.warn("Falha ao salvar rascunho:", e);
@@ -75,13 +76,14 @@ function deleteProject(name) {
 /* ---------- Import / Export de arquivos .json ---------- */
 
 function exportGameToFile(game) {
-  const safeName = (game.meta.title || "projeto")
+  const normalized = window.Schema.normalizeGame(game);
+  const safeName = (normalized.meta.title || "projeto")
     .toLowerCase()
     .replace(/[^a-z0-9_\-]/gi, '_')
     .replace(/_+/g, '_');
 
   const blob = new Blob(
-    [JSON.stringify(game, null, 2)],
+    [JSON.stringify(normalized, null, 2)],
     { type: "application/json" }
   );
   const url = URL.createObjectURL(blob);

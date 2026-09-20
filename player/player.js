@@ -74,6 +74,12 @@ const RUNTIME = {
       });
       if (this.game.scene.backgroundImage) {
         bg.style.backgroundImage = `url('${this.resolveAsset(this.game.scene.backgroundImage)}')`;
+        bg.style.backgroundRepeat =
+          this.game.scene.backgroundMode === 'repeat' ? 'repeat' : 'no-repeat';
+        bg.style.backgroundSize =
+          this.game.scene.backgroundMode === 'repeat' ? 'auto' : this.game.scene.backgroundMode;
+      } else {
+        bg.style.backgroundImage = 'none';
       }
     }
   },
@@ -94,8 +100,13 @@ const RUNTIME = {
       let posXPercent = ent.positionX;
       let flip = false;
       if (genre === 'fighting') {
-        posXPercent = index === 0 ? 25 : 70;
-        flip = (index === 1);
+        const fightersBefore = Object.values(this.game.entities)
+          .slice(0, index)
+          .filter(item => item.role === 'player' || item.role === 'enemy').length;
+        if (ent.role === 'player' || ent.role === 'enemy') {
+          posXPercent = fightersBefore === 0 ? 25 : 70;
+          flip = fightersBefore === 1;
+        }
       }
 
       const el = document.createElement('div');
@@ -251,8 +262,8 @@ const RUNTIME = {
   /* ---------- FIGHTING ---------- */
 
   updateFighting(dt) {
-    const list = Object.values(this.actors);
-    const p1 = list[0], p2 = list[1];
+    const p1 = Object.values(this.actors).find(actor => actor.role === 'player');
+    const p2 = Object.values(this.actors).find(actor => actor.role === 'enemy');
     if (!p1) return;
 
     const W = window.innerWidth;
@@ -346,7 +357,7 @@ const RUNTIME = {
 
   setAction(actor, action) {
     if (actor.action === action) return;
-    const src = actor.data.gifs[action];
+    const src = actor.data.gifs[action] || actor.data.gifs.idle || actor.data.gifs.run || '';
     if (!src) return;
     actor.img.src = this.resolveAsset(src);
     actor.action = action;

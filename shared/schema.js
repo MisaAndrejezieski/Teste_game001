@@ -37,6 +37,10 @@ function isObject(v){ return v !== null && typeof v === 'object' && !Array.isArr
 function isString(v){ return typeof v === 'string'; }
 function isNumber(v){ return typeof v === 'number' && isFinite(v); }
 function isBool(v){ return typeof v === 'boolean'; }
+function numberOrDefault(v, fallback, min, max) {
+  if (!isNumber(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
 
 function normalizeEntity(id, raw) {
   const b = DEFAULT_ENTITY();
@@ -46,13 +50,13 @@ function normalizeEntity(id, raw) {
     role: ['player','enemy','prop'].includes(e.role) ? e.role : b.role,
     layer: ['background','ground','foreground'].includes(e.layer) ? e.layer : b.layer,
     hasDensity: isBool(e.hasDensity) ? e.hasDensity : b.hasDensity,
-    extraLives: isNumber(e.extraLives) ? e.extraLives : b.extraLives,
-    speed: isNumber(e.speed) ? e.speed : b.speed,
-    jumpHeight: isNumber(e.jumpHeight) ? e.jumpHeight : b.jumpHeight,
+    extraLives: numberOrDefault(e.extraLives, b.extraLives, 0, 99),
+    speed: numberOrDefault(e.speed, b.speed, 0, 1000),
+    jumpHeight: numberOrDefault(e.jumpHeight, b.jumpHeight, 0, 500),
     floatTime: isNumber(e.floatTime) ? e.floatTime : b.floatTime,
-    scale: isNumber(e.scale) ? e.scale : b.scale,
-    offsetY: isNumber(e.offsetY) ? e.offsetY : b.offsetY,
-    positionX: isNumber(e.positionX) ? e.positionX : b.positionX,
+    scale: numberOrDefault(e.scale, b.scale, 0.1, 5),
+    offsetY: numberOrDefault(e.offsetY, b.offsetY, -300, 300),
+    positionX: numberOrDefault(e.positionX, b.positionX, 0, 100),
     gifs: {
       idle:   (e.gifs && isString(e.gifs.idle))   ? e.gifs.idle   : "",
       run:    (e.gifs && isString(e.gifs.run))    ? e.gifs.run    : "",
@@ -96,16 +100,24 @@ function normalizeGame(data) {
     },
     rules: {
       runner: {
-        worldSpeed: isNumber(rules.runner && rules.runner.worldSpeed)
-          ? rules.runner.worldSpeed : b.rules.runner.worldSpeed,
-        spawnRate: isNumber(rules.runner && rules.runner.spawnRate)
-          ? rules.runner.spawnRate : b.rules.runner.spawnRate
+        worldSpeed: numberOrDefault(
+          rules.runner && rules.runner.worldSpeed,
+          b.rules.runner.worldSpeed, 0, 2000
+        ),
+        spawnRate: numberOrDefault(
+          rules.runner && rules.runner.spawnRate,
+          b.rules.runner.spawnRate, 200, 10000
+        )
       },
       fighting: {
-        maxHp: isNumber(rules.fighting && rules.fighting.maxHp)
-          ? rules.fighting.maxHp : b.rules.fighting.maxHp,
-        damage: isNumber(rules.fighting && rules.fighting.damage)
-          ? rules.fighting.damage : b.rules.fighting.damage
+        maxHp: numberOrDefault(
+          rules.fighting && rules.fighting.maxHp,
+          b.rules.fighting.maxHp, 10, 9999
+        ),
+        damage: numberOrDefault(
+          rules.fighting && rules.fighting.damage,
+          b.rules.fighting.damage, 1, 9999
+        )
       }
     },
     entities: {}

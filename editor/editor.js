@@ -401,6 +401,7 @@ function renderStage() {
 
   const keys = Object.keys(game.entities);
   const genre = game.meta.genre;
+  let fightingIndex = 0;
 
   keys.forEach((id, index) => {
     const e = game.entities[id];
@@ -410,9 +411,10 @@ function renderStage() {
     let posX = e.positionX;
     let flip = false;
 
-    if (genre === 'fighting') {
-      posX = index === 0 ? 25 : 70;
-      flip = (index === 1);
+    if (genre === 'fighting' && (e.role === 'player' || e.role === 'enemy')) {
+      posX = fightingIndex === 0 ? 25 : 70;
+      flip = (fightingIndex === 1);
+      fightingIndex++;
     }
 
     el.style.left = `${posX}%`;
@@ -433,8 +435,8 @@ function renderStage() {
     c.appendChild(el);
 
     if (genre === 'fighting') {
-      if (index === 0) document.getElementById('p1-name').innerText = e.id.toUpperCase();
-      if (index === 1) document.getElementById('p2-name').innerText = e.id.toUpperCase();
+      if (e.role === 'player') document.getElementById('p1-name').innerText = e.id.toUpperCase();
+      if (e.role === 'enemy') document.getElementById('p2-name').innerText = e.id.toUpperCase();
     }
   });
 }
