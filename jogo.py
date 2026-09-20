@@ -14,37 +14,43 @@ pygame.display.set_caption("A Jornada - Pixel Art Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carregamento e Processamento dos Sprites (sprites001.png -> 238x212) ---
+# --- Carregamento da Folha de Sprites ---
 FOLHA = pygame.image.load("personagem.png").convert_alpha()
+LARG_TOTAL, ALT_TOTAL = FOLHA.get_size()
 
 COLUNAS = 6
 LINHAS = 4
 
-# Dimensões exatas de cada célula da grade
-SPRITE_W = 238 // COLUNAS  # ~39 px
-SPRITE_H = 212 // LINHAS   #  53 px
+# Cálculo preciso de tamanho por frame
+SPRITE_W = LARG_TOTAL / COLUNAS
+SPRITE_H = ALT_TOTAL / LINHAS
 
-SPRITE_ESCALA = 2.2  # Tamanho do personagem na tela
+SPRITE_ESCALA = 2.2  # Escala de exibição
 
 def pegar_frame_grade(coluna, linha):
-    """Recorta um frame específico da folha (coluna 0..5, linha 0..3)."""
-    x = coluna * SPRITE_W
-    y = linha * SPRITE_H
+    """
+    Recorta um frame aplicando uma margem de segurança de 1px 
+    para eliminar resíduos de linhas nas bordas superiores/inferiores.
+    """
+    x = int(coluna * SPRITE_W)
+    y = int(linha * SPRITE_H)
     
-    largura = min(SPRITE_W, 238 - x)
-    altura = min(SPRITE_H, 212 - y)
-    
-    sub = FOLHA.subsurface((x, y, largura, altura))
-    return pygame.transform.scale(
-        sub, 
-        (int(largura * SPRITE_ESCALA), int(altura * SPRITE_ESCALA))
-    )
+    w = int(SPRITE_W)
+    h = int(SPRITE_H)
 
-# Linha 1: Caminhada de perfil
-FRAMES_ANDAR = [pegar_frame_grade(col, 1) for col in range(6)]
+    # Margem interna para evitar capturar linhas do frame vizinho
+    MARGEM_MIND = 1
+    sub = FOLHA.subsurface((x + MARGEM_MIND, y + MARGEM_MIND, w - (MARGEM_MIND * 2), h - (MARGEM_MIND * 2)))
+    
+    novo_w = int((w - MARGEM_MIND * 2) * SPRITE_ESCALA)
+    novo_h = int((h - MARGEM_MIND * 2) * SPRITE_ESCALA)
+    return pygame.transform.scale(sub, (novo_w, novo_h))
+
+# Linha 1: Animação de caminhada de lado na imagem original
+FRAMES_ANDAR = [pegar_frame_grade(col, 1) for col in range(COLUNAS)]
 FRAME_IDLE = FRAMES_ANDAR[0]
 
-# --- Paleta de Cores Mágica / Desértica ---
+# --- Cores do Cenário ---
 COR_CEU_TOPO = (12, 10, 30)
 COR_CEU_ALTO = (28, 22, 58)
 COR_CEU_MEDIO = (60, 42, 95)
@@ -59,7 +65,7 @@ COR_DUNA_PERTO = (150, 92, 120)
 COR_CHAO = (90, 58, 85)
 COR_PARTICULA = (210, 160, 255)
 
-# --- Física e Mundo ---
+# --- Física do Mundo ---
 GRAVIDADE = 420.0
 FORCA_FLUTUACAO = -310.0
 VELOCIDADE_X = 220.0
@@ -69,13 +75,13 @@ CHAO_Y = ALTURA - 70
 # --- Estado do Jogador ---
 x, y = LARGURA // 2, CHAO_Y
 vel_y = 0.0
-direcao = 1
+direcao = -1  # -1 = Esquerda (padrão do sprite original), 1 = Direita
 no_ar = False
 tempo_animacao = 0.0
 
 off_fundo = off_medio = off_perto = 0.0
 
-# --- Sistemas de Partículas e Estrelas ---
+# --- Partículas e Estrelas ---
 particulas = []
 estrelas = [
     {
@@ -112,7 +118,6 @@ def atualizar_desenhar_particulas(dt):
         TELA.blit(surf, (p["x"], p["y"]))
 
 def desenhar_cenario(tempo):
-    # Gradiente do Céu
     for i in range(0, ALTURA, 3):
         t = i / ALTURA
         if t < 0.4:
@@ -126,14 +131,12 @@ def desenhar_cenario(tempo):
             c = [int(COR_CEU_MEDIO[k]*(1-tt) + COR_CEU_BASE[k]*tt) for k in range(3)]
         pygame.draw.rect(TELA, c, (0, i, LARGURA, 3))
 
-    # Estrelas Cintilantes
     for e in estrelas:
         b = 0.5 + 0.5 * math.sin(tempo * e["vel"] + e["fase"])
         px = (e["x"] - off_fundo * 0.08) % LARGURA
         cor = [min(255, int(COR_ESTRELA[k] * b)) for k in range(3)]
         pygame.draw.circle(TELA, cor, (int(px), int(e["y"])), e["tam"])
 
-    # Lua com Halo
     lx, ly = LARGURA - 160, 100
     for r, a in [(80, 15), (55, 30), (35, 60)]:
         h = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
@@ -168,11 +171,15 @@ while True:
 
     teclas = pygame.key.get_pressed()
     nova_direcao = 0
-    if teclas[pygame.K_LEFT]: nova_direcao = -1
-    if teclas[pygame.K_RIGHT]: nova_direcao = 1
-    if nova_direcao != 0: direcao = nova_direcao
+    if teclas[pygame.K_LEFT]: 
+        nova_direcao = -1
+    if teclas[pygame.K_RIGHT]: 
+        nova_direcao = 1
+    
+    if nova_direcao != 0:
+        direcao = nova_direcao
 
-    # Flutuação e Física
+    # Flutuação e Controles
     if teclas[pygame.K_SPACE] or teclas[pygame.K_UP]:
         vel_y += FORCA_FLUTUACAO * dt * 7.5
         criar_particula(x, y - 5)
@@ -192,7 +199,7 @@ while True:
     x += nova_direcao * VELOCIDADE_X * dt
     x = max(30, min(LARGURA - 30, x))
 
-    # Paralaxe
+    # Paralaxe do Cenário
     off_fundo += nova_direcao * 18 * dt
     off_medio += nova_direcao * 55 * dt
     off_perto += nova_direcao * 120 * dt
@@ -209,17 +216,19 @@ while True:
     atualizar_desenhar_particulas(dt)
     desenhar_sombra(x, y)
 
-    # Seleção do Frame de Animação
+    # Animação
     if no_ar:
-        sprite_atual = FRAMES_ANDAR[3]  # Frame com pernas arqueadas no ar
+        sprite_atual = FRAMES_ANDAR[3]
     elif nova_direcao != 0:
         idx = int(tempo_animacao * 10) % len(FRAMES_ANDAR)
         sprite_atual = FRAMES_ANDAR[idx]
     else:
         sprite_atual = FRAME_IDLE
 
-    # Espelhamento Horizontal
-    if direcao == -1:
+    # CORREÇÃO DA DIREÇÃO:
+    # A imagem original caminha para a ESQUERDA (direcao = -1).
+    # Portanto, só espelhamos a imagem quando a direção for DIREITA (direcao = 1).
+    if direcao == 1:
         sprite_atual = pygame.transform.flip(sprite_atual, True, False)
 
     rect = sprite_atual.get_rect()
