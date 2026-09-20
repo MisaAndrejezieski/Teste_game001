@@ -13,7 +13,7 @@ import pygame
 from PIL import Image, ImageSequence
 
 # =============================================================
-# ANIMAÇÃO (GIF → lista de frames, já escalados e flipados)
+# ANIMAÇÃO
 # =============================================================
 
 class AnimatedImage:
@@ -148,7 +148,6 @@ class RunnerGame:
         img_w, img_h = image.get_size()
         target_w, target_h = config.WIDTH, config.HEIGHT
 
-        # Imagem maior que a tela → crop centralizado (sem distorção)
         if img_w >= target_w and img_h >= target_h:
             crop_x = (img_w - target_w) // 2
             crop_y = (img_h - target_h) // 2
@@ -156,7 +155,6 @@ class RunnerGame:
                 pygame.Rect(crop_x, crop_y, target_w, target_h)
             ).copy()
 
-        # Imagem menor → redimensiona mantendo proporção e centraliza
         scale_factor = min(target_w / img_w, target_h / img_h)
         new_w = int(img_w * scale_factor)
         new_h = int(img_h * scale_factor)
