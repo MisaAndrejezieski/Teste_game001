@@ -8,17 +8,14 @@
 </head>
 <body>
 
-  <!-- Palco / Canvas de Renderização do Jogo -->
   <div id="game-stage">
     <div id="ground-line"></div>
     <div id="entities-container"></div>
   </div>
 
-  <!-- Painel de Controle e Criação -->
   <div id="control-panel">
     <h2>Anime Game Studio</h2>
 
-    <!-- Gerenciamento de Projetos e Modos de Jogo -->
     <div class="control-group">
       <h3>1. Configurações do Jogo</h3>
       <div class="field">
@@ -35,7 +32,6 @@
       </div>
     </div>
 
-    <!-- Seletor de Entidades (Personagens / Inimigos / Objetos) -->
     <div class="control-group">
       <h3>2. Entidades & Personagens</h3>
       <div class="field">
@@ -49,7 +45,6 @@
       <button class="btn-action btn-blue" onclick="createEntity()">+ Criar Entidade</button>
     </div>
 
-    <!-- Regras e Físicas por Entidade -->
     <div class="control-group">
       <h3>3. Propriedades & Físicas</h3>
       <div class="field">
@@ -88,38 +83,44 @@
         <label>Tempo Flutuação (ms):</label>
         <input type="number" id="prop-float" min="0" max="10000" step="100" onchange="updateEntityProp('floatTime', parseInt(this.value))" />
       </div>
+      <div class="field">
+        <label>Escala (Tamanho):</label>
+        <input type="number" id="prop-scale" step="0.05" min="0.1" max="5" onchange="updateEntityProp('scale', parseFloat(this.value))" />
+      </div>
+      <div class="field">
+        <label>Ajuste de Chão (Y):</label>
+        <input type="number" id="prop-offset-y" min="-300" max="300" onchange="updateEntityProp('offsetY', parseInt(this.value))" />
+      </div>
     </div>
 
-    <!-- Vínculo de GIFs por Ação -->
     <div class="control-group">
-      <h3>4. GIFs de Animações</h3>
-      <div class="field">
+      <h3>4. Upload de GIFs de Animação</h3>
+      <div class="file-field">
         <label>Parado / Base:</label>
-        <input type="text" id="gif-idle" onchange="updateEntityGif('idle', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('idle', this.files[0])" />
       </div>
-      <div class="field">
+      <div class="file-field">
         <label>Correr / Mover:</label>
-        <input type="text" id="gif-run" onchange="updateEntityGif('run', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('run', this.files[0])" />
       </div>
-      <div class="field">
+      <div class="file-field">
         <label>Pular:</label>
-        <input type="text" id="gif-jump" onchange="updateEntityGif('jump', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('jump', this.files[0])" />
       </div>
-      <div class="field">
+      <div class="file-field">
         <label>Ataque / Especial:</label>
-        <input type="text" id="gif-attack" onchange="updateEntityGif('attack', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('attack', this.files[0])" />
       </div>
-      <div class="field">
+      <div class="file-field">
         <label>Dano / Esbarrão:</label>
-        <input type="text" id="gif-bump" onchange="updateEntityGif('bump', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('bump', this.files[0])" />
       </div>
-      <div class="field">
+      <div class="file-field">
         <label>Morte / Derrota:</label>
-        <input type="text" id="gif-defeat" onchange="updateEntityGif('defeat', this.value)" placeholder="images/..." />
+        <input type="file" accept="image/*" onchange="uploadEntityGif('defeat', this.files[0])" />
       </div>
     </div>
 
-    <!-- Salvar e Carregar Arquivo de Jogo (.json) -->
     <div class="control-group">
       <h3>5. Salvar / Carregar Projeto</h3>
       <button class="btn-action btn-green" onclick="downloadGameFile()">💾 Baixar Arquivo do Jogo (.json)</button>
