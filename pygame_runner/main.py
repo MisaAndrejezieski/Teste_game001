@@ -151,18 +151,48 @@ class RunnerGame:
     # ---------- CARREGAMENTO ----------
 
     def load_backgrounds(self) -> list[tuple[pygame.Surface, float]]:
+        """
+        Carrega os cenários respeitando a proporção.
+        - Se a imagem é maior ou igual à tela: CROP centralizado (sem distorção)
+        - Se a imagem é menor: redimensiona mantendo proporção e centraliza
+        """
         backgrounds = []
+        target_w, target_h = config.WIDTH, config.HEIGHT
+
         for filename, speed in config.SCENERY:
             path = config.ASSET_DIR / filename
             try:
                 image = pygame.image.load(str(path)).convert()
-                image = pygame.transform.scale(
-                    image, (config.WIDTH, config.HEIGHT)
-                )
-                backgrounds.append((image, speed))
             except pygame.error:
-                # Se algum cenário não carregar, pula ele silenciosamente
                 continue
+
+            img_w, img_h = image.get_size()
+
+            # Caso 1: imagem maior/igual → crop centralizado
+            if img_w >= target_w and img_h >= target_h:
+                crop_x = (img_w - target_w) // 2
+                crop_y = (img_h - target_h) // 2
+                image = image.subsurface(
+                    pygame.Rect(crop_x, crop_y, target_w, target_h)
+                ).copy()
+
+            # Caso 2: imagem menor → redimensiona mantendo proporção e centraliza
+            else:
+                scale_factor = min(target_w / img_w, target_h / img_h)
+                new_w = int(img_w * scale_factor)
+                new_h = int(img_h * scale_factor)
+                image = pygame.transform.smoothscale(image, (new_w, new_h))
+
+                canvas = pygame.Surface((target_w, target_h))
+                canvas.fill((135, 198, 235))
+                canvas.blit(
+                    image,
+                    ((target_w - new_w) // 2, (target_h - new_h) // 2),
+                )
+                image = canvas
+
+            backgrounds.append((image, speed))
+
         return backgrounds
 
     def load_action_set(
@@ -336,17 +366,11 @@ class RunnerGame:
     def draw(self) -> None:
         self.screen.fill((135, 198, 235))
 
-        # Paralaxe (sempre rolando, mesmo no game over)
+        # Paralaxe — desenha cada camada duas vezes para loop infinito
         for image, speed in self.backgrounds:
             offset = int(-self.scroll * speed) % config.WIDTH
             self.screen.blit(image, (offset - config.WIDTH, 0))
             self.screen.blit(image, (offset, 0))
-
-        # Chão
-        self.screen.fill(
-            (96, 75, 55),
-            (0, config.GROUND_Y, config.WIDTH, config.HEIGHT - config.GROUND_Y),
-        )
 
         # Nora
         nora_anim = (
