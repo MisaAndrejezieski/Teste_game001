@@ -3,530 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Engine de Personagens - Slot Anime</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background-color: #121214;
-      color: #ffffff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    /* Palco do Jogo */
-    #game-stage {
-      flex: 1;
-      position: relative;
-      background: linear-gradient(180deg, #2a1b4e 0%, #110927 100%);
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      overflow: hidden;
-    }
-
-    #ground-line {
-      position: absolute;
-      bottom: 80px;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: #ff4081;
-      box-shadow: 0 0 10px #ff4081;
-      z-index: 10;
-    }
-
-    .sprite-container {
-      position: absolute;
-      bottom: 80px;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-    }
-
-    .sprite-container img {
-      display: block;
-      max-width: none;
-      transform-origin: bottom center;
-    }
-
-    /* Layers de Z-Index */
-    .layer-background { z-index: 2; }
-    .layer-ground { z-index: 11; }
-    .layer-foreground { z-index: 20; }
-
-    /* Painel Lateral */
-    #control-panel {
-      width: 420px;
-      background: #1e1e24;
-      border-left: 2px solid #32323d;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    h2 {
-      font-size: 1.2rem;
-      color: #ff4081;
-      border-bottom: 1px solid #32323d;
-      padding-bottom: 8px;
-    }
-
-    .control-group {
-      background: #282830;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #383845;
-    }
-
-    .control-group h3 {
-      font-size: 0.95rem;
-      margin-bottom: 10px;
-      color: #00e5ff;
-    }
-
-    .field {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-      gap: 8px;
-    }
-
-    .field label {
-      flex: 1;
-    }
-
-    .field input[type="text"],
-    .field input[type="number"],
-    .field select {
-      background: #121214;
-      border: 1px solid #383845;
-      color: #fff;
-      padding: 5px;
-      border-radius: 4px;
-      flex: 1.2;
-      font-size: 0.8rem;
-    }
-
-    .field input[type="range"] {
-      flex: 1.2;
-    }
-
-    .field span {
-      width: 45px;
-      text-align: right;
-      font-family: monospace;
-      color: #ffeb3b;
-    }
-
-    .checkbox-field {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 8px;
-    }
-
-    .btn-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 5px;
-    }
-
-    button {
-      background: #3f51b5;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 0.8rem;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #5c6bc0;
-    }
-
-    .btn-add {
-      background: #00b0ff;
-      width: 100%;
-      margin-top: 5px;
-    }
-    .btn-add:hover { background: #40c4ff; }
-
-    #export-btn {
-      background: #4caf50;
-      padding: 12px;
-      font-size: 0.9rem;
-      margin-top: auto;
-    }
-    #export-btn:hover { background: #66bb6a; }
-  </style>
+  <title>Anime Game Studio - Criador de Jogos</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+  <!-- Palco / Canvas de Renderização do Jogo -->
   <div id="game-stage">
     <div id="ground-line"></div>
-    <!-- Personagens serão injetados dinamicamente aqui -->
+    <div id="entities-container"></div>
   </div>
 
+  <!-- Painel de Controle e Criação -->
   <div id="control-panel">
-    <h2>Gerenciador de Personagens</h2>
+    <h2>Anime Game Studio</h2>
 
-    <!-- Seletor de Personagem Ativo -->
+    <!-- Gerenciamento de Projetos e Modos de Jogo -->
     <div class="control-group">
-      <h3>Selecione o Personagem</h3>
+      <h3>1. Configurações do Jogo</h3>
       <div class="field">
-        <label>Personagem:</label>
-        <select id="char-selector" onchange="selectCharacter(this.value)">
-          <!-- Opções preenchidas via JS -->
+        <label>Nome do Jogo:</label>
+        <input type="text" id="game-title" value="Meu Jogo Anime" onchange="updateGameMeta('title', this.value)" />
+      </div>
+      <div class="field">
+        <label>Estilo de Jogo:</label>
+        <select id="game-genre" onchange="updateGameMeta('genre', this.value)">
+          <option value="runner">Runner (Estilo Dino Google)</option>
+          <option value="fighting">Luta 2D</option>
+          <option value="racing">Corrida / Obstáculos</option>
         </select>
       </div>
     </div>
 
-    <!-- Criar Novo Personagem -->
+    <!-- Seletor de Entidades (Personagens / Inimigos / Objetos) -->
     <div class="control-group">
-      <h3>Novo Personagem</h3>
+      <h3>2. Entidades & Personagens</h3>
       <div class="field">
-        <label>ID / Nome:</label>
-        <input type="text" id="new-char-id" placeholder="ex: inimiga_voadora" />
+        <label>Selecionar:</label>
+        <select id="entity-selector" onchange="selectEntity(this.value)"></select>
       </div>
-      <button class="btn-add" onclick="createNewCharacter()">+ Criar Personagem</button>
+      <div class="field">
+        <label>Novo ID/Nome:</label>
+        <input type="text" id="new-entity-id" placeholder="ex: chefao_fase1" />
+      </div>
+      <button class="btn-action btn-blue" onclick="createEntity()">+ Criar Entidade</button>
     </div>
 
-    <!-- Propriedades Físicas e Camada -->
+    <!-- Regras e Físicas por Entidade -->
     <div class="control-group">
-      <h3>Física e Colisão</h3>
+      <h3>3. Propriedades & Físicas</h3>
+      <div class="field">
+        <label>Papel no Jogo:</label>
+        <select id="prop-role" onchange="updateEntityProp('role', this.value)">
+          <option value="player">Jogador Principal</option>
+          <option value="enemy">Inimigo / Obstáculo</option>
+          <option value="prop">Objeto / Cenário</option>
+        </select>
+      </div>
       <div class="field">
         <label>Camada (Z-Index):</label>
-        <select id="prop-layer" onchange="updateCharProp('layer', this.value)">
-          <option value="foreground">Na frente da cena</option>
-          <option value="ground">Em cima do chão</option>
-          <option value="background">Atrás da cena</option>
+        <select id="prop-layer" onchange="updateEntityProp('layer', this.value)">
+          <option value="foreground">Na Frente (Foreground)</option>
+          <option value="ground">No Chão (Main Stage)</option>
+          <option value="background">Atrás (Background)</option>
         </select>
       </div>
       <div class="checkbox-field">
-        <input type="checkbox" id="prop-density" onchange="updateCharProp('hasDensity', this.checked)" />
-        <label for="prop-density">Possui corpo/densidade (Interage com objetos)</label>
+        <input type="checkbox" id="prop-density" onchange="updateEntityProp('hasDensity', this.checked)" />
+        <label for="prop-density">Possui colisão/corpo sólido</label>
       </div>
       <div class="field">
-        <label>Chances Extras (Vidas):</label>
-        <input type="number" id="prop-lives" min="0" max="99" onchange="updateCharProp('extraLives', parseInt(this.value))" />
-      </div>
-    </div>
-
-    <!-- Movimento e Ações -->
-    <div class="control-group">
-      <h3>Regras de Ação e Física</h3>
-      <div class="field">
-        <label>Movimento Base:</label>
-        <select id="prop-state" onchange="updateCharProp('baseState', this.value)">
-          <option value="idle">Parado</option>
-          <option value="run">Correndo</option>
-        </select>
+        <label>Chances/Vidas:</label>
+        <input type="number" id="prop-lives" min="0" max="99" onchange="updateEntityProp('extraLives', parseInt(this.value))" />
       </div>
       <div class="field">
-        <label>Direção:</label>
-        <select id="prop-dir" onchange="updateCharProp('direction', this.value)">
-          <option value="left-to-right">Esquerda → Direita</option>
-          <option value="right-to-left">Direita → Esquerda</option>
-        </select>
+        <label>Velocidade / Força:</label>
+        <input type="number" id="prop-speed" min="0" max="1000" onchange="updateEntityProp('speed', parseInt(this.value))" />
       </div>
       <div class="field">
-        <label>Força do Pulo (px):</label>
-        <input type="number" id="prop-jump" min="0" max="500" onchange="updateCharProp('jumpHeight', parseInt(this.value))" />
+        <label>Força Pulo (px):</label>
+        <input type="number" id="prop-jump" min="0" max="500" onchange="updateEntityProp('jumpHeight', parseInt(this.value))" />
       </div>
       <div class="field">
         <label>Tempo Flutuação (ms):</label>
-        <input type="number" id="prop-float" min="0" max="10000" step="100" onchange="updateCharProp('floatTime', parseInt(this.value))" />
+        <input type="number" id="prop-float" min="0" max="10000" step="100" onchange="updateEntityProp('floatTime', parseInt(this.value))" />
       </div>
     </div>
 
-    <!-- GIFs Cadastrados por Ação -->
+    <!-- Vínculo de GIFs por Ação -->
     <div class="control-group">
-      <h3>GIFs por Ação</h3>
+      <h3>4. GIFs de Animações</h3>
       <div class="field">
-        <label>Corrida / Parado:</label>
-        <input type="text" id="gif-run" onchange="updateCharGif('run', this.value)" placeholder="images/..." />
+        <label>Parado / Base:</label>
+        <input type="text" id="gif-idle" onchange="updateEntityGif('idle', this.value)" placeholder="images/..." />
       </div>
       <div class="field">
-        <label>Pulo:</label>
-        <input type="text" id="gif-jump" onchange="updateCharGif('jump', this.value)" placeholder="images/..." />
+        <label>Correr / Mover:</label>
+        <input type="text" id="gif-run" onchange="updateEntityGif('run', this.value)" placeholder="images/..." />
       </div>
       <div class="field">
-        <label>Flutuando:</label>
-        <input type="text" id="gif-float" onchange="updateCharGif('float', this.value)" placeholder="images/..." />
+        <label>Pular:</label>
+        <input type="text" id="gif-jump" onchange="updateEntityGif('jump', this.value)" placeholder="images/..." />
       </div>
       <div class="field">
-        <label>Esbarrão:</label>
-        <input type="text" id="gif-bump" onchange="updateCharGif('bump', this.value)" placeholder="images/..." />
+        <label>Ataque / Especial:</label>
+        <input type="text" id="gif-attack" onchange="updateEntityGif('attack', this.value)" placeholder="images/..." />
       </div>
       <div class="field">
-        <label>Morte / Eliminação:</label>
-        <input type="text" id="gif-defeat" onchange="updateCharGif('defeat', this.value)" placeholder="images/..." />
+        <label>Dano / Esbarrão:</label>
+        <input type="text" id="gif-bump" onchange="updateEntityGif('bump', this.value)" placeholder="images/..." />
+      </div>
+      <div class="field">
+        <label>Morte / Derrota:</label>
+        <input type="text" id="gif-defeat" onchange="updateEntityGif('defeat', this.value)" placeholder="images/..." />
       </div>
     </div>
 
-    <!-- Testar Ações no Palco -->
+    <!-- Salvar e Carregar Arquivo de Jogo (.json) -->
     <div class="control-group">
-      <h3>Testar Ações na Tela</h3>
-      <div class="btn-grid">
-        <button onclick="triggerAction('run')">Mover / Correr</button>
-        <button onclick="triggerAction('jump')">Testar Pulo</button>
-        <button onclick="triggerAction('float')">Testar Flutuação</button>
-        <button onclick="triggerAction('bump')">Testar Esbarrão</button>
-        <button onclick="triggerAction('defeat')">Testar Morte</button>
-      </div>
+      <h3>5. Salvar / Carregar Projeto</h3>
+      <button class="btn-action btn-green" onclick="downloadGameFile()">💾 Baixar Arquivo do Jogo (.json)</button>
+      <input type="file" id="import-file" accept=".json" style="display: none;" onchange="loadGameFile(event)" />
+      <button class="btn-action btn-orange" onclick="document.getElementById('import-file').click()">📂 Carregar Arquivo de Jogo</button>
     </div>
-
-    <button id="export-btn" onclick="exportConfig()">Copiar Configurações Finalizadas</button>
   </div>
 
-  <script>
-    // Estrutura de dados expansível com suporte a N personagens
-    const gameEngine = {
-      characters: {
-        buro: {
-          id: "buro",
-          name: "Buro (Principal)",
-          layer: "foreground",
-          hasDensity: true,
-          extraLives: 3,
-          baseState: "run",
-          direction: "left-to-right",
-          jumpHeight: 150,
-          floatTime: 800,
-          scale: 0.9,
-          offsetY: -60,
-          gifs: {
-            run: "images/muse-dash-buro_anda_normal.gif",
-            jump: "images/muse-dash-buro_segunda_imagem_do_pulo_normal.gif",
-            float: "images/muse-dash-buro_segunda_imagem_do_pulo_especial.gif",
-            bump: "images/muse-dash-buro_segunda_imagem_do_esbarrao.gif",
-            defeat: "images/muse-dash-marija_morte.gif"
-          }
-        },
-        inimiga_01: {
-          id: "inimiga_01",
-          name: "Inimiga Terrestre",
-          layer: "ground",
-          hasDensity: true,
-          extraLives: 0,
-          baseState: "run",
-          direction: "right-to-left",
-          jumpHeight: 0,
-          floatTime: 0,
-          scale: 0.35,
-          offsetY: -150,
-          gifs: {
-            run: "images/inimiga_caminha.gif",
-            jump: "",
-            float: "",
-            bump: "images/inimiga_esbarra_na_principal.gif",
-            defeat: "images/inim004.gif"
-          }
-        }
-      }
-    };
-
-    let selectedCharId = "buro";
-
-    // Inicialização da interface
-    function init() {
-      const savedData = localStorage.getItem('slot_anime_engine');
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        if (parsed.characters) gameEngine.characters = parsed.characters;
-      }
-
-      renderStage();
-      populateSelector();
-      loadPanelData();
-    }
-
-    function saveState() {
-      localStorage.setItem('slot_anime_engine', JSON.stringify(gameEngine));
-    }
-
-    // Renderiza todos os personagens no palco
-    function renderStage() {
-      const stage = document.getElementById('game-stage');
-      
-      // Mantém a linha do chão
-      stage.innerHTML = '<div id="ground-line"></div>';
-
-      Object.keys(gameEngine.characters).forEach(id => {
-        const char = gameEngine.characters[id];
-        
-        const container = document.createElement('div');
-        container.id = `char-container-${id}`;
-        container.className = `sprite-container layer-${char.layer}`;
-        
-        // Posicionamento conforme direção
-        if (char.direction === 'left-to-right') {
-          container.style.left = '20%';
-        } else {
-          container.style.right = '20%';
-        }
-
-        const img = document.createElement('img');
-        img.id = `char-img-${id}`;
-        img.src = char.gifs.run || char.gifs.bump || char.gifs.defeat || '';
-        img.style.transform = `scale(${char.scale || 1}) translateY(${-(char.offsetY || 0)}px)`;
-        
-        // Espelha a imagem conforme a direção
-        if (char.direction === 'right-to-left') {
-          img.style.transform += ' scaleX(-1)';
-        }
-
-        container.appendChild(img);
-        stage.appendChild(container);
-      });
-    }
-
-    function populateSelector() {
-      const selector = document.getElementById('char-selector');
-      selector.innerHTML = '';
-      Object.keys(gameEngine.characters).forEach(id => {
-        const opt = document.createElement('option');
-        opt.value = id;
-        opt.innerText = gameEngine.characters[id].name || id;
-        selector.appendChild(opt);
-      });
-      selector.value = selectedCharId;
-    }
-
-    function loadPanelData() {
-      const char = gameEngine.characters[selectedCharId];
-      if (!char) return;
-
-      document.getElementById('prop-layer').value = char.layer;
-      document.getElementById('prop-density').checked = char.hasDensity;
-      document.getElementById('prop-lives').value = char.extraLives;
-      document.getElementById('prop-state').value = char.baseState;
-      document.getElementById('prop-dir').value = char.direction;
-      document.getElementById('prop-jump').value = char.jumpHeight;
-      document.getElementById('prop-float').value = char.floatTime;
-
-      document.getElementById('gif-run').value = char.gifs.run || '';
-      document.getElementById('gif-jump').value = char.gifs.jump || '';
-      document.getElementById('gif-float').value = char.gifs.float || '';
-      document.getElementById('gif-bump').value = char.gifs.bump || '';
-      document.getElementById('gif-defeat').value = char.gifs.defeat || '';
-    }
-
-    function selectCharacter(id) {
-      selectedCharId = id;
-      loadPanelData();
-    }
-
-    function createNewCharacter() {
-      const idInput = document.getElementById('new-char-id');
-      const rawId = idInput.value.trim().toLowerCase().replace(/\s+/g, '_');
-
-      if (!rawId) {
-        alert('Digite um ID válido para o novo personagem.');
-        return;
-      }
-
-      if (gameEngine.characters[rawId]) {
-        alert('Já existe um personagem com esse ID!');
-        return;
-      }
-
-      gameEngine.characters[rawId] = {
-        id: rawId,
-        name: idInput.value.trim(),
-        layer: "ground",
-        hasDensity: true,
-        extraLives: 1,
-        baseState: "run",
-        direction: "right-to-left",
-        jumpHeight: 100,
-        floatTime: 0,
-        scale: 1,
-        offsetY: 0,
-        gifs: { run: "", jump: "", float: "", bump: "", defeat: "" }
-      };
-
-      idInput.value = '';
-      selectedCharId = rawId;
-      saveState();
-      renderStage();
-      populateSelector();
-      loadPanelData();
-    }
-
-    function updateCharProp(prop, value) {
-      const char = gameEngine.characters[selectedCharId];
-      if (!char) return;
-
-      char[prop] = value;
-      saveState();
-      renderStage();
-    }
-
-    function updateCharGif(action, value) {
-      const char = gameEngine.characters[selectedCharId];
-      if (!char) return;
-
-      char.gifs[action] = value;
-      saveState();
-      
-      const img = document.getElementById(`char-img-${selectedCharId}`);
-      if (img && action === 'run') img.src = value;
-    }
-
-    function triggerAction(action) {
-      const char = gameEngine.characters[selectedCharId];
-      const img = document.getElementById(`char-img-${selectedCharId}`);
-      const container = document.getElementById(`char-container-${selectedCharId}`);
-
-      if (!char || !img) return;
-
-      if (char.gifs[action]) {
-        img.src = char.gifs[action];
-      }
-
-      // Efeito de Pulo Visual
-      if (action === 'jump' && char.jumpHeight > 0) {
-        container.style.transition = 'transform 0.3s ease-out';
-        container.style.transform = `translateY(${-char.jumpHeight}px)`;
-        setTimeout(() => {
-          container.style.transform = 'translateY(0px)';
-        }, 300);
-      }
-
-      // Efeito de Flutuação
-      if (action === 'float' && char.floatTime > 0) {
-        container.style.transition = 'transform 0.4s ease-out';
-        container.style.transform = `translateY(${-char.jumpHeight || -80}px)`;
-        setTimeout(() => {
-          container.style.transform = 'translateY(0px)';
-        }, char.floatTime);
-      }
-    }
-
-    function exportConfig() {
-      const output = JSON.stringify(gameEngine, null, 2);
-      navigator.clipboard.writeText(output);
-      alert('Configurações dos personagens copiadas com sucesso!');
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
