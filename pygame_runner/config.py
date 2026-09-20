@@ -30,3 +30,14 @@ SCENERY = [
     ("cenario002.jpg", 0.42),
     ("cenario003.png", 0.75),
 ]
+
+# --- Escala por personagem ---
+# 1.0 = tamanho original do GIF
+# < 1.0 = menor, > 1.0 = maior
+# Calibre olhando o resultado na tela
+NORA_SCALE = 0.15
+ENEMY_SCALE = 0.12
+
+# --- Física do pulo ---
+GRAVITY = 2200      # px/s² (quanto maior, mais rápido cai)
+JUMP_SPEED = 900    # px/s (velocidade inicial do pulo)
