@@ -1,229 +1,237 @@
-import math
 import random
 import sys
+import time
 
 import pygame
+from PIL import Image
 
 pygame.init()
 
 # --- Configurações da Janela ---
 LARGURA, ALTURA = 960, 540
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
-pygame.display.set_caption("A Jornada - Pixel Art Edition")
+pygame.display.set_caption("Runner Infinite - Muse Dash Edition")
 RELOGIO = pygame.time.Clock()
 FPS = 60
 
-# --- Carregamento dos Sprites (Grade 3x3) ---
-FOLHA = pygame.image.load("sprites0023.png").convert_alpha()
-LARG_TOTAL, ALT_TOTAL = FOLHA.get_size()
+# --- Leitor de GIFs via PIL ---
+def carregar_gif(caminho_arquivo, escala=1.0):
+    """Carrega todos os frames de um GIF da pasta images/ e os converte para Superfícies do Pygame."""
+    try:
+        pil_img = Image.open(caminho_arquivo)
+    except Exception as e:
+        print(f"Erro ao carregar {caminho_arquivo}: {e}")
+        # Cria uma superfície rosa de fallback se a imagem falhar
+        surf = pygame.Surface((100, 100))
+        surf.fill((255, 105, 180))
+        return [surf]
 
-COLUNAS = 3
-LINHAS = 3
+    frames = []
+    try:
+        while True:
+            # Converte o frame atual do GIF para RGBA
+            frame_rgba = pil_img.convert("RGBA")
+            largura, altura = frame_rgba.size
+            dados = frame_rgba.tobytes()
+            
+            # Converte bytes para Superfície do Pygame
+            surf = pygame.image.fromstring(dados, (largura, altura), "RGBA")
+            
+            if escala != 1.0:
+                novo_w = int(largura * escala)
+                novo_h = int(altura * escala)
+                surf = pygame.transform.scale(surf, (novo_w, novo_h))
+                
+            frames.append(surf)
+            pil_img.seek(pil_img.tell() + 1)
+    except EOFError:
+        pass  # Fim dos frames do GIF
+    
+    return frames
 
-SPRITE_W = LARG_TOTAL // COLUNAS
-SPRITE_H = ALT_TOTAL // LINHAS
 
-# --- AJUSTE DE TAMANHO ---
-# Reduzido de 2.5 para 1.2 para a personagem ficar menor na tela
-SPRITE_ESCALA = 1.2 
+class AnimaçãoGIF:
+    """Classe para gerenciar a reprodução e temporização dos frames do GIF."""
+    def __init__(self, frames, fps=12):
+        self.frames = frames
+        self.fps = fps
+        self.frame_atual = 0
+        self.tempo_frame = 1.0 / fps
+        self.acumulador = 0.0
 
-def pegar_frame(coluna, linha):
-    """Recorta um frame específico da grade 3x3."""
-    x = coluna * SPRITE_W
-    y = linha * SPRITE_H
-    sub = FOLHA.subsurface((x, y, SPRITE_W, SPRITE_H))
-    return pygame.transform.scale(
-        sub, (int(SPRITE_W * SPRITE_ESCALA), int(SPRITE_H * SPRITE_ESCALA))
-    )
+    def atualizar(self, dt):
+        if len(self.frames) <= 1:
+            return
+        self.acumulador += dt
+        if self.acumulador >= self.tempo_frame:
+            self.acumulador -= self.tempo_frame
+            self.frame_atual = (self.frame_atual + 1) % len(self.frames)
 
-# Frames disponíveis na folha 3x3
-FRAME_FRENTE  = pegar_frame(1, 2)  # Baixo centro
-FRAME_COSTAS  = pegar_frame(1, 0)  # Cima centro
-FRAME_PERFIL  = pegar_frame(0, 1)  # Esquerda meio
-FRAME_DIAG_FZ = pegar_frame(0, 2)  # Frente-esquerda
+    def obter_frame(self):
+        return self.frames[self.frame_atual]
 
-# --- Cores do Cenário ---
-COR_CEU_TOPO = (12, 10, 30)
-COR_CEU_ALTO = (28, 22, 58)
-COR_CEU_MEDIO = (60, 42, 95)
-COR_CEU_BASE = (110, 75, 120)
-COR_LUA = (255, 245, 220)
-COR_LUA_HALO = (200, 160, 210)
-COR_ESTRELA = (240, 230, 255)
-COR_MONTANHA = (50, 38, 70)
-COR_DUNA_FUNDO = (80, 52, 95)
-COR_DUNA_MEDIO = (115, 70, 110)
-COR_DUNA_PERTO = (150, 92, 120)
-COR_CHAO = (90, 58, 85)
-COR_PARTICULA = (210, 160, 255)
 
-# --- Física do Jogo ---
-GRAVIDADE = 420.0
-FORCA_FLUTUACAO = -310.0
-VELOCIDADE_X = 220.0
-VEL_Y_MAX = 220.0
-CHAO_Y = ALTURA - 70
+# --- Carregamento dos GIFs na pasta images/ ---
+#[cite: 5, 6, 7, 8, 9]
+GIFS = {
+    "INICIAL": AnimaçãoGIF(carregar_gif("images/muse-dash-buro.jpg", escala=0.6), fps=10),      # Tela de Abertura[cite: 5]
+    "ANDANDO_1": AnimaçãoGIF(carregar_gif("images/muse-dash-buro001.jpg", escala=0.5), fps=12),  # 0 a 5s de corrida[cite: 7]
+    "ANDANDO_2": AnimaçãoGIF(carregar_gif("images/muse-dash-buro002.jpg", escala=0.5), fps=12),  # 5s+ de corrida contínua[cite: 8]
+    "PULO": AnimaçãoGIF(carregar_gif("images/muse-dash-buro003.jpg", escala=0.5), fps=12),       # Foice / Ação no ar[cite: 6]
+    "MORTE": AnimaçãoGIF(carregar_gif("images/muse-dash-marija.jpg", escala=0.5), fps=10),      # Fantasma
+    "VITORIA": AnimaçãoGIF(carregar_gif("images/muse-dash-buro004.jpg", escala=0.5), fps=10),    # Celebração[cite: 9]
+}
 
-# --- Estado do Jogador ---
-x, y = LARGURA // 2, CHAO_Y
+# --- Fontes e Cores ---
+FONTE_TITULO = pygame.font.SysFont("arial", 28, bold=True)
+FONTE_SUB = pygame.font.SysFont("arial", 18)
+
+COR_FUNDO = (25, 20, 35)
+COR_CHAO = (180, 80, 120)
+COR_TEXTO = (255, 240, 250)
+COR_OBSTACULO = (220, 50, 90)
+
+# --- Variáveis de Física do Runner ---
+CHAO_Y = ALTURA - 80
+GRAVIDADE = 1200.0
+FORCA_PULO = -500.0
+
+# --- Estado Inicial do Jogo ---
+estado_jogo = "TELA_INICIAL"  # "TELA_INICIAL", "JOGANDO", "MORTO", "MENU_REINICIAR"
+tempo_corrida = 0.0
+tempo_morte = 0.0
+
+# Jogador
+pos_x, pos_y = 120, CHAO_Y
 vel_y = 0.0
-direcao = 1  # 1 = Direita, -1 = Esquerda
-no_ar = False
-tempo_animacao = 0.0
+no_chao = True
 
-off_fundo = off_medio = off_perto = 0.0
+# Obstáculos
+obstaculos = []
+tempo_spawn = 0.0
+VELOCIDADE_CENARIO = 350.0
 
-# --- Partículas e Estrelas ---
-particulas = []
-estrelas = [
-    {
-        "x": random.uniform(0, LARGURA),
-        "y": random.uniform(0, ALTURA * 0.65),
-        "tam": random.choice([1, 1, 2]),
-        "fase": random.uniform(0, math.tau),
-        "vel": random.uniform(0.8, 2.5),
-    }
-    for _ in range(80)
-]
-
-def criar_particula(px, py):
-    particulas.append({
-        "x": px + random.uniform(-8, 8),
-        "y": py + random.uniform(-2, 4),
-        "vel_x": random.uniform(-20, 20),
-        "vel_y": random.uniform(15, 40),
-        "vida": 1.0,
-        "tam": random.uniform(1.5, 3)
-    })
-
-def atualizar_desenhar_particulas(dt):
-    for p in particulas[:]:
-        p["vida"] -= dt * 1.6
-        if p["vida"] <= 0:
-            particulas.remove(p)
-            continue
-        p["x"] += p["vel_x"] * dt
-        p["y"] += p["vel_y"] * dt
-        alpha = int(255 * p["vida"])
-        surf = pygame.Surface((int(p["tam"]), int(p["tam"])), pygame.SRCALPHA)
-        surf.fill((*COR_PARTICULA, alpha))
-        TELA.blit(surf, (p["x"], p["y"]))
-
-def desenhar_cenario(tempo):
-    for i in range(0, ALTURA, 3):
-        t = i / ALTURA
-        if t < 0.4:
-            tt = t / 0.4
-            c = [int(COR_CEU_TOPO[k]*(1-tt) + COR_CEU_ALTO[k]*tt) for k in range(3)]
-        elif t < 0.75:
-            tt = (t - 0.4) / 0.35
-            c = [int(COR_CEU_ALTO[k]*(1-tt) + COR_CEU_MEDIO[k]*tt) for k in range(3)]
-        else:
-            tt = (t - 0.75) / 0.25
-            c = [int(COR_CEU_MEDIO[k]*(1-tt) + COR_CEU_BASE[k]*tt) for k in range(3)]
-        pygame.draw.rect(TELA, c, (0, i, LARGURA, 3))
-
-    for e in estrelas:
-        b = 0.5 + 0.5 * math.sin(tempo * e["vel"] + e["fase"])
-        px = (e["x"] - off_fundo * 0.08) % LARGURA
-        cor = [min(255, int(COR_ESTRELA[k] * b)) for k in range(3)]
-        pygame.draw.circle(TELA, cor, (int(px), int(e["y"])), e["tam"])
-
-    lx, ly = LARGURA - 160, 100
-    for r, a in [(80, 15), (55, 30), (35, 60)]:
-        h = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
-        pygame.draw.circle(h, (*COR_LUA_HALO, a), (r, r), r)
-        TELA.blit(h, (lx - r, ly - r))
-    pygame.draw.circle(TELA, COR_LUA, (lx, ly), 20)
-
-def desenhar_dunas(offset, cor, alt_base, amp, comp):
-    pts = [(px, alt_base + math.sin((px + offset)/comp)*amp + math.sin((px + offset)*2.5/comp)*(amp*0.3))
-           for px in range(0, LARGURA + 12, 10)]
-    pts.extend([(LARGURA, ALTURA), (0, ALTURA)])
-    pygame.draw.polygon(TELA, cor, pts)
-
-def desenhar_sombra(cx, cy):
-    dist = CHAO_Y - cy
-    fator = max(0.2, 1.0 - dist / 160.0)
-    w, h = int(24 * fator), int(6 * fator)
-    if w > 0 and h > 0:
-        s = pygame.Surface((w, h), pygame.SRCALPHA)
-        pygame.draw.ellipse(s, (0, 0, 0, 110), (0, 0, w, h))
-        TELA.blit(s, (cx - w // 2, CHAO_Y - 3))
+def resetar_jogo():
+    global pos_x, pos_y, vel_y, no_chao, tempo_corrida, tempo_morte, obstaculos, estado_jogo
+    pos_x, pos_y = 120, CHAO_Y
+    vel_y = 0.0
+    no_chao = True
+    tempo_corrida = 0.0
+    tempo_morte = 0.0
+    obstaculos.clear()
+    estado_jogo = "JOGANDO"
 
 # --- Loop Principal ---
 while True:
     dt = RELOGIO.tick(FPS) / 1000.0
-    tempo_animacao += dt
 
+    # Processamento de Eventos
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-    teclas = pygame.key.get_pressed()
-    nova_direcao = 0
-    if teclas[pygame.K_LEFT]: nova_direcao = -1
-    if teclas[pygame.K_RIGHT]: nova_direcao = 1
+        if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+            if estado_jogo == "TELA_INICIAL":
+                resetar_jogo()
+            elif estado_jogo == "JOGANDO" and no_chao:
+                vel_y = FORCA_PULO
+                no_chao = False
+            elif estado_jogo == "MENU_REINICIAR":
+                resetar_jogo()
 
-    if nova_direcao != 0:
-        direcao = nova_direcao
+    # --- Atualização do Estado do Jogo ---
+    if estado_jogo == "TELA_INICIAL":
+        GIFS["INICIAL"].atualizar(dt)
 
-    # Controles Verticais / Flutuação
-    subindo = False
-    if teclas[pygame.K_SPACE] or teclas[pygame.K_UP]:
-        vel_y += FORCA_FLUTUACAO * dt * 7.5
-        criar_particula(x, y - 5)
-        subindo = True
-    else:
+    elif estado_jogo == "JOGANDO":
+        tempo_corrida += dt
+
+        # Física do Pulo
         vel_y += GRAVIDADE * dt
+        pos_y += vel_y * dt
 
-    vel_y = max(-240.0, min(VEL_Y_MAX, vel_y))
-    y += vel_y * dt
+        if pos_y >= CHAO_Y:
+            pos_y = CHAO_Y
+            vel_y = 0.0
+            no_chao = True
 
-    if y >= CHAO_Y:
-        y = CHAO_Y
-        vel_y = 0.0
-        no_ar = False
-    else:
-        no_ar = True
+        # Gerenciamento de Obstáculos
+        tempo_spawn += dt
+        if tempo_spawn >= random.uniform(1.5, 2.5):
+            tempo_spawn = 0.0
+            obstaculos.append(pygame.Rect(LARGURA + 20, CHAO_Y - 40, 30, 40))
 
-    x += nova_direcao * VELOCIDADE_X * dt
-    x = max(30, min(LARGURA - 30, x))
+        # Movimento dos Obstáculos e Colisão
+        rect_jogador = pygame.Rect(pos_x - 30, pos_y - 60, 60, 60)
+        for obs in obstaculos[:]:
+            obs.x -= int(VELOCIDADE_CENARIO * dt)
+            if obs.x < -50:
+                obstaculos.remove(obs)
 
-    # Paralaxe
-    off_fundo += nova_direcao * 18 * dt
-    off_medio += nova_direcao * 55 * dt
-    off_perto += nova_direcao * 120 * dt
+            # Colisão detectada: entra no estado de morte
+            if rect_jogador.colliderect(obs):
+                estado_jogo = "MORTO"
+                tempo_morte = 0.0
 
-    # --- Renderização ---
-    desenhar_cenario(tempo_animacao)
-    desenhar_dunas(off_fundo, COR_MONTANHA, ALTURA - 220, 30, 220)
-    desenhar_dunas(off_medio, COR_DUNA_FUNDO, ALTURA - 160, 20, 140)
-    desenhar_dunas(off_medio * 1.3, COR_DUNA_MEDIO, ALTURA - 110, 14, 90)
-    desenhar_dunas(off_perto, COR_DUNA_PERTO, ALTURA - 75, 8, 60)
-    
-    pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y + 5, LARGURA, ALTURA - CHAO_Y))
+        # Seleção do GIF ativo com base na mecânica
+        if not no_chao:
+            anim_ativa = GIFS["PULO"][cite: 6]
+        elif tempo_corrida > 5.0:
+            anim_ativa = GIFS["ANDANDO_2"][cite: 8]
+        else:
+            anim_ativa = GIFS["ANDANDO_1"][cite: 7]
 
-    atualizar_desenhar_particulas(dt)
-    desenhar_sombra(x, y)
+        anim_ativa.atualizar(dt)
 
-    # Lógica de seleção do sprite da folha 3x3
-    if subindo:
-        sprite_atual = FRAME_COSTAS  # Usa as costas enquanto flutua subindo
-    elif no_ar:
-        sprite_atual = FRAME_DIAG_FZ  # Usa diagonal no ar
-        if direcao == 1:
-            sprite_atual = pygame.transform.flip(sprite_atual, True, False)
-    elif nova_direcao != 0:
-        sprite_atual = FRAME_PERFIL  # Usa perfil para andar
-        if direcao == 1:
-            sprite_atual = pygame.transform.flip(sprite_atual, True, False)
-    else:
-        sprite_atual = FRAME_FRENTE  # Parado virado para a frente
+    elif estado_jogo == "MORTO":
+        tempo_morte += dt
+        GIFS["MORTE"].atualizar(dt)
 
-    rect = sprite_atual.get_rect()
-    rect.midbottom = (int(x), int(y))
-    TELA.blit(sprite_atual, rect)
+        # Após 10 segundos na forma de fantasma, libera a opção de reiniciar
+        if tempo_morte >= 10.0:
+            estado_jogo = "MENU_REINICIAR"
+
+    # --- Renderização na Tela ---
+    TELA.fill(COR_FUNDO)
+
+    if estado_jogo == "TELA_INICIAL":
+        frame = GIFS["INICIAL"].obter_frame()
+        rect = frame.get_rect(center=(LARGURA // 2, ALTURA // 2 - 30))
+        TELA.blit(frame, rect)
+
+        txt = FONTE_TITULO.render("Pressione qualquer tecla ou clique para iniciar", True, COR_TEXTO)
+        TELA.blit(txt, txt.get_rect(center=(LARGURA // 2, ALTURA - 60)))
+
+    elif estado_jogo in ("JOGANDO", "MORTO", "MENU_REINICIAR"):
+        # Desenha o Chão
+        pygame.draw.rect(TELA, COR_CHAO, (0, CHAO_Y, LARGURA, ALTURA - CHAO_Y))
+
+        # Desenha Obstáculos
+        for obs in obstaculos:
+            pygame.draw.rect(TELA, COR_OBSTACULO, obs, border_radius=6)
+
+        # Escolhe a imagem da personagem
+        if estado_jogo == "MORTO" or estado_jogo == "MENU_REINICIAR":
+            frame = GIFS["MORTE"].obter_frame()
+        elif not no_chao:
+            frame = GIFS["PULO"].obter_frame()[cite: 6]
+        elif tempo_corrida > 5.0:
+            frame = GIFS["ANDANDO_2"].obter_frame()[cite: 8]
+        else:
+            frame = GIFS["ANDANDO_1"].obter_frame()[cite: 7]
+
+        rect = frame.get_rect(midbottom=(int(pos_x), int(pos_y)))
+        TELA.blit(frame, rect)
+
+        # Exibe cronômetro e instrução de reinício
+        if estado_jogo == "MORTO":
+            tempo_restante = max(0, int(10 - tempo_morte))
+            txt = FONTE_SUB.render(f"Aguarde... {tempo_restante}s", True, COR_TEXTO)
+            TELA.blit(txt, txt.get_rect(center=(LARGURA // 2, 80)))
+
+        elif estado_jogo == "MENU_REINICIAR":
+            txt = FONTE_TITULO.render("Pressione qualquer tecla para Reiniciar", True, COR_TEXTO)
+            TELA.blit(txt, txt.get_rect(center=(LARGURA // 2, 80)))
 
     pygame.display.flip()
